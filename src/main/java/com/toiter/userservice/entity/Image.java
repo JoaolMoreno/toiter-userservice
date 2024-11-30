@@ -11,7 +11,6 @@ public class Image {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Lob
     @Column(columnDefinition = "BYTEA", nullable = false)
     private byte[] image;
 
