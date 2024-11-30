@@ -1,5 +1,6 @@
 package com.toiter.userservice.service;
 
+import com.toiter.userservice.entity.Image;
 import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.*;
 import com.toiter.userservice.producer.KafkaProducer;
@@ -14,7 +15,9 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.Optional;
 
@@ -24,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final FollowRepository followRepository;
+    private final ImageService imageService;
     private final RedisTemplate<String, Long> redisTemplateForLong;
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
     private final KafkaProducer kafkaProducer;
@@ -31,10 +35,11 @@ public class UserService {
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository;
+        this.imageService = imageService;
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
         this.kafkaProducer = kafkaProducer;
@@ -101,30 +106,32 @@ public class UserService {
         }
     }
 
-    public void updateProfileImage(Long id, Long imageId) {
-        User user = userRepository.findById(id)
+    @Transactional
+    public void updateProfileImage(Long userId, MultipartFile imageFile) throws IOException {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        user.setProfileImageId(imageId);
+        Long existingImageId = user.getProfileImageId();
+        Image image = imageService.updateOrCreateImage(existingImageId, imageFile);
+        user.setProfileImageId(image.getId());
         userRepository.save(user);
 
         UserUpdatedEvent event = new UserUpdatedEvent(user);
         kafkaProducer.sendUserUpdatedEvent(event);
-
-        logger.info("Profile image updated for user ID {}: {}", id, imageId);
     }
 
-    public void updateHeaderImage(Long id, Long imageId) {
-        User user = userRepository.findById(id)
+    @Transactional
+    public void updateHeaderImage(Long userId, MultipartFile imageFile) throws IOException {
+        User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        user.setHeaderImageId(imageId);
+        Long existingImageId = user.getHeaderImageId();
+        Image image = imageService.updateOrCreateImage(existingImageId, imageFile);
+        user.setHeaderImageId(image.getId());
         userRepository.save(user);
 
         UserUpdatedEvent event = new UserUpdatedEvent(user);
         kafkaProducer.sendUserUpdatedEvent(event);
-
-        logger.info("Header image updated for user ID {}: {}", id, imageId);
     }
 
     public UserPublicData getPublicUserDataByUsername(String username, Long authenticatedUserId) {

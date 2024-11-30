@@ -9,6 +9,9 @@ import com.toiter.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/users")
@@ -32,16 +35,16 @@ public class UserController {
     }
 
     @PutMapping("/profile-image")
-    public ResponseEntity<Void> updateProfileImage(@RequestParam Long imageId, Authentication authentication) {
-        Long id = authService.getUserIdFromAuthentication(authentication);
-        userService.updateProfileImage(id, imageId);
+    public ResponseEntity<Void> updateProfileImage(@RequestParam("image") MultipartFile image, Authentication authentication) throws IOException {
+        Long userId = authService.getUserIdFromAuthentication(authentication);
+        userService.updateProfileImage(userId, image);
         return ResponseEntity.noContent().build();
     }
 
     @PutMapping("/header-image")
-    public ResponseEntity<Void> updateHeaderImage(@RequestParam Long imageId, Authentication authentication) {
-        Long id = authService.getUserIdFromAuthentication(authentication);
-        userService.updateHeaderImage(id, imageId);
+    public ResponseEntity<Void> updateHeaderImage(@RequestParam("image") MultipartFile image, Authentication authentication) throws IOException {
+        Long userId = authService.getUserIdFromAuthentication(authentication);
+        userService.updateHeaderImage(userId, image);
         return ResponseEntity.noContent().build();
     }
 
