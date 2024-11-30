@@ -1,6 +1,6 @@
 ## **Toiter - User Service**
 
-O **User Service** é um dos microsserviços do ecossistema **Toiter**, responsável por gerenciar usuários, autenticação e relações de follow/unfollow. Ele lida com o cadastro, atualização de perfis e permissões de acesso, além de emitir eventos para outros serviços quando ações de relacionamento ocorrem.
+O **User Service** é um dos microsserviços do ecossistema **Toiter**, responsável por gerenciar usuários, autenticação e relações de follow/unfollow. Ele lida com o cadastro, atualização de perfis e permissões de acesso, além de emitir eventos para outros serviços quando ações de relacionamento ou atualizações de perfis ocorrem.
 
 ---
 
@@ -9,8 +9,9 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 #### **1. Gerenciamento de Usuários**
 - Cadastro de usuários com validações de email, senha e username.
 - Atualização de perfil (bio, username, e-mail).
-- Atualização de imagens (perfil e cabeçalho).
+- Atualização de imagens (perfil e cabeçalho), com lógica para reuso de imagens já existentes.
 - Exibição de dados públicos dos usuários.
+- Integração com Redis para cache de mapeamentos `username -> userId` e dados públicos.
 
 #### **2. Autenticação e Autorização**
 - Login com JWT:
@@ -28,7 +29,9 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 - **Emissão de Eventos**:
     - `FollowCreatedEvent`: Quando um usuário segue outro.
     - `FollowDeletedEvent`: Quando um usuário deixa de seguir outro.
-- Outros serviços (e.g., Feed, Notificações) consomem esses eventos para manter a consistência entre os dados.
+    - `UserUpdatedEvent`: Quando informações de um usuário são atualizadas (bio, username ou imagens).
+- **Consumo de Eventos**:
+    - O `UserUpdatedConsumer` atualiza automaticamente o Redis com as mudanças recebidas.
 
 ---
 
@@ -75,19 +78,26 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
     - Tópicos:
         - `follow-created-topic`
         - `follow-deleted-topic`
+        - `user-updated-topic`
 
-#### **3. Segurança**
+#### **3. Cache**
+- **Redis**:
+    - Mapeamento `username -> userId`.
+    - Dados públicos do usuário (`userId -> UserPublicData`).
+
+#### **4. Segurança**
 - **Spring Security com JWT**:
     - Tokens contêm `userId` e `username`.
     - Controle de acesso aos endpoints baseado no usuário autenticado.
 
-#### **4. Framework**
+#### **5. Framework**
 - **Spring Boot**:
     - Camadas:
         - **Controller**: Endpoints REST.
         - **Service**: Regras de negócio.
         - **Repository**: Acesso ao banco de dados via JPA.
-        - **Config**: Configurações de segurança, Kafka, entre outros.
+        - **Producer**: Emissão de eventos Kafka.
+        - **Consumer**: Consumo de eventos Kafka para atualizar Redis.
 
 ---
 
@@ -102,7 +112,7 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 2. Configure o arquivo `application.properties` com:
     - Detalhes do banco de dados PostgreSQL.
     - Chave secreta para JWT.
-    - Configuração do Kafka.
+    - Configuração do Kafka e Redis.
 
 3. Suba os serviços com Docker Compose:
    ```bash
@@ -110,7 +120,7 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
    ```
 
 4. Acesse a API localmente em:
-   ```
+   ```bash
    http://localhost:9990
    ```
 
@@ -127,10 +137,11 @@ toiter-user-service/
 │   │   │   │   ├── controller/       # Controladores REST
 │   │   │   │   ├── service/          # Lógica de negócio
 │   │   │   │   ├── repository/       # Acesso ao banco de dados
-│   │   │   │   ├── model/            # DTOs e modelos de dados
+│   │   │   │   ├── model/            # DTOs e eventos Kafka
 │   │   │   │   ├── entity/           # Entidades JPA
 │   │   │   │   ├── config/           # Configurações do Spring e Kafka
 │   │   │   │   ├── producer/         # Emissão de eventos Kafka
+│   │   │   │   ├── consumer/         # Consumo de eventos Kafka
 │   │   │   │   └── exception/        # Tratamento de exceções globais
 │   │   └── resources/
 │   │       ├── application.properties    # Configurações da aplicação
@@ -146,6 +157,9 @@ toiter-user-service/
 
 2. **Monitoramento**:
     - Integração com ferramentas como Prometheus e Grafana para monitoramento em tempo real.
+
+3. **Sincronização do Cache**:
+    - Melhorar a sincronização entre o Redis e o banco de dados em cenários de inconsistência.
 
 ---
 
