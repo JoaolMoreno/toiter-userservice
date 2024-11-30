@@ -53,9 +53,4 @@ public class UserController {
         Long authenticatedUserId = authService.getUserIdFromAuthentication(authentication);
         return userService.getPublicUserDataByUsername(username, authenticatedUserId);
     }
-
-    @GetMapping("/images/{id}")
-    public Image getImageById(@PathVariable Long id) {
-        return imageService.getImageById(id);
-    }
 }
