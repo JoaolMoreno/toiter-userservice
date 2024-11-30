@@ -31,7 +31,11 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
     - `FollowDeletedEvent`: Quando um usuário deixa de seguir outro.
     - `UserUpdatedEvent`: Quando informações de um usuário são atualizadas (bio, username ou imagens).
 - **Consumo de Eventos**:
-    - O `UserUpdatedConsumer` atualiza automaticamente o Redis com as mudanças recebidas.
+    - Incrementa/Decrementa seguidores no Redis ao consumir os eventos:
+        - `follow-created-topic`
+        - `follow-deleted-topic`
+    - Atualiza informações no Redis ao consumir:
+        - `user-updated-topic`.
 
 ---
 
@@ -50,7 +54,7 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 | `PUT`    | `/users/profile-image`     | Atualiza a imagem de perfil do usuário autenticado.      |
 | `PUT`    | `/users/header-image`      | Atualiza a imagem de cabeçalho do usuário autenticado.   |
 | `GET`    | `/users/username/{username}` | Retorna os dados públicos de um usuário por username.    |
-| `GET`    | `/users/images/{id}`       | Retorna uma imagem (perfil ou cabeçalho) pelo ID.        |
+| `GET`    | `/users/images/{id}`       | Retorna o conteúdo de uma imagem (perfil ou cabeçalho) pelo ID. |
 
 #### **3. Relacionamentos**
 | Método   | Endpoint                      | Descrição                                                |
@@ -59,6 +63,34 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 | `DELETE` | `/follows/{username}/unfollow`| Deixar de seguir um usuário.                            |
 | `GET`    | `/follows/{username}/followers` | Listar seguidores de um usuário.                        |
 | `GET`    | `/follows/{username}/followings` | Listar usuários que o usuário está seguindo.            |
+
+---
+
+### **Consumo de Eventos Kafka**
+
+#### **1. Eventos de Seguidores**
+
+##### **`FollowCreatedEvent`**
+- Incrementa o contador de seguidores (`followersCount`) de um usuário no Redis.
+- O incremento é realizado apenas se o usuário já estiver presente no cache Redis.
+
+##### **`FollowDeletedEvent`**
+- Decrementa o contador de seguidores (`followersCount`) de um usuário no Redis.
+- O decremento é realizado apenas se o usuário já estiver presente no cache Redis e nunca vai abaixo de 0.
+
+#### **2. Evento de Atualização de Usuário**
+
+##### **`UserUpdatedEvent`**
+- Atualiza as informações no Redis para o `userId` especificado no evento.
+- Campos atualizados:
+    - `username`
+    - `bio`
+    - `profileImageId`
+    - `headerImageId`
+    - Outros campos públicos relevantes.
+- **Regras de atualização:**
+    - Se o `username` foi alterado, o mapeamento `username -> userId` também é atualizado.
+    - Os dados no Redis são sobrescritos com base no evento.
 
 ---
 
@@ -84,6 +116,7 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 - **Redis**:
     - Mapeamento `username -> userId`.
     - Dados públicos do usuário (`userId -> UserPublicData`).
+    - Contagem de seguidores (`followersCount`) atualizada em tempo real.
 
 #### **4. Segurança**
 - **Spring Security com JWT**:
