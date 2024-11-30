@@ -1,3 +1,21 @@
+-- Este script cria o schema 'usr' e as tabelas 'images', 'users' e 'followers' no banco de dados.
+-- O schema 'usr' é criado para separar as tabelas do banco de dados de outras tabelas que podem existir no banco de dados.
+-- Esse script deve ser executado ao configurar o banco de dados pela primeira vez.
+-- Criar o schema 'usr'
+CREATE SCHEMA usr;
+
+-- Alterar a propriedade do schema para o usuário 'usr'
+ALTER SCHEMA usr OWNER TO usr;
+
+DO $$
+    BEGIN
+        EXECUTE (
+            SELECT string_agg('ALTER TABLE ' || table_schema || '.' || table_name || ' OWNER TO usr;', ' ')
+            FROM information_schema.tables
+            WHERE table_schema = 'usr'
+        );
+    END $$;
+
 -- Create the Images table
 CREATE TABLE usr.images (
                             id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
