@@ -1,10 +1,8 @@
 package com.toiter.userservice.controller;
 
-import com.toiter.userservice.entity.Image;
 import com.toiter.userservice.model.UpdatedUser;
 import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.AuthService;
-import com.toiter.userservice.service.ImageService;
 import com.toiter.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,12 +17,10 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
-    private final ImageService imageService;
 
-    public UserController(UserService userService, AuthService authService, ImageService imageService) {
+    public UserController(UserService userService, AuthService authService) {
         this.userService = userService;
         this.authService = authService;
-        this.imageService = imageService;
     }
 
     @PutMapping("/")
