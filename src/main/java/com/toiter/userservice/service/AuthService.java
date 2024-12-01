@@ -4,6 +4,7 @@ import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.LoginRequest;
 import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.repository.UserRepository;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -53,10 +54,17 @@ public class AuthService {
     }
 
     public Long getUserIdFromAuthentication(Authentication authentication) {
-        return (Long) authentication.getPrincipal();
+        Object principal = authentication.getPrincipal();
+        if (principal == null) {
+            throw new IllegalArgumentException("Principal cannot be null");
+        }
+        return (Long) principal;
     }
 
-    public TokenResponse refreshTokens(TokenResponse tokenResponse) {
+    public TokenResponse refreshTokens(@Valid TokenResponse tokenResponse) {
+        if (tokenResponse.getAccessToken() == null) {
+            throw new NullPointerException("Access token cannot be null");
+        }
         String username = jwtService.extractUsername(tokenResponse.getAccessToken());
         Long userId = jwtService.extractUserId(tokenResponse.getAccessToken());
 
