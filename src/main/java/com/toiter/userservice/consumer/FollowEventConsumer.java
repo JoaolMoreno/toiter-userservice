@@ -13,21 +13,37 @@ import org.slf4j.LoggerFactory;
 public class FollowEventConsumer {
 
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
+    private final RedisTemplate<String, String> redisTemplate;
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
+    private static final String FOLLOW_KEY_PREFIX = "follow:user:";
+    private static final String FOLLOWERS_KEY_PREFIX = "followers:user:";
     private static final Logger logger = LoggerFactory.getLogger(FollowEventConsumer.class);
 
-    public FollowEventConsumer(RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData) {
+    public FollowEventConsumer(RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, RedisTemplate<String, String> redisTemplate) {
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
+        this.redisTemplate = redisTemplate;
     }
 
     @KafkaListener(topics = "follow-created-topic", groupId = "follow-event-consumers")
     public void consumeFollowCreatedEvent(FollowCreatedEvent event) {
-        processFollowEvent(event.getUserId(), 1, "FollowCreatedEvent");
+        Long userId = event.getUserId();
+        Long followerId = event.getFollowerId();
+
+        redisTemplate.opsForSet().add(FOLLOW_KEY_PREFIX + followerId, userId.toString());
+        redisTemplate.opsForSet().add(FOLLOWERS_KEY_PREFIX + userId, followerId.toString());
+
+        logger.info("Added follow relationship: user {} is now following user {}", followerId, userId);
     }
 
     @KafkaListener(topics = "follow-deleted-topic", groupId = "follow-event-consumers")
     public void consumeFollowDeletedEvent(FollowDeletedEvent event) {
-        processFollowEvent(event.getUserId(), -1, "FollowDeletedEvent");
+        Long userId = event.getUserId();
+        Long followerId = event.getFollowerId();
+
+        redisTemplate.opsForSet().remove(FOLLOW_KEY_PREFIX + followerId, userId.toString());
+        redisTemplate.opsForSet().remove(FOLLOWERS_KEY_PREFIX + userId, followerId.toString());
+
+        logger.info("Removed follow relationship: user {} is no longer following user {}", followerId, userId);
     }
 
     private void processFollowEvent(Long userId, int delta, String eventType) {

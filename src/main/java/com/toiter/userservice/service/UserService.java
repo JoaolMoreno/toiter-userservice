@@ -30,18 +30,22 @@ public class UserService {
     private final ImageService imageService;
     private final RedisTemplate<String, Long> redisTemplateForLong;
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
+    private final RedisTemplate<String, String> redisTemplate;
     private final KafkaProducer kafkaProducer;
     private static final String USERNAME_TO_ID_KEY_PREFIX = "user:username:";
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
+    private static final String FOLLOW_KEY_PREFIX = "follow:user:";
+    private static final String FOLLOWERS_KEY_PREFIX = "followers:user:";
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, RedisTemplate<String, String> redisTemplate, KafkaProducer kafkaProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository;
         this.imageService = imageService;
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
+        this.redisTemplate = redisTemplate;
         this.kafkaProducer = kafkaProducer;
     }
 
@@ -146,8 +150,9 @@ public class UserService {
             logger.info("User ID not found in cache for username: {}. Fetching from database.", username);
             userId = userRepository.findUserIdByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
-            valueOpsForLong.set(userIdKey, userId, Duration.ofHours(1));
+            valueOpsForLong.set(userIdKey, userId);
         }
+        redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
         logger.debug("User ID for username {}: {}", username, userId);
 
         ValueOperations<String, UserPublicData> valueOpsForPublicData = redisTemplateForUserPublicData.opsForValue();
@@ -172,14 +177,49 @@ public class UserService {
                     null,
                     null
             );
-            valueOpsForPublicData.set(publicDataKey, publicData, Duration.ofHours(1));
+            valueOpsForPublicData.set(publicDataKey, publicData);
         }
+        redisTemplateForUserPublicData.expire(publicDataKey, Duration.ofHours(1));
         logger.debug("Fetched public data for ID {}: {}", userId, publicData);
 
         if (!userId.equals(authenticatedUserId)) {
             logger.info("Processing relationship data (isFollowing, isFollowingMe) for user ID: {}", userId);
-            boolean isFollowing = followRepository.existsByUserIdAndFollowerId(userId, authenticatedUserId);
-            boolean isFollowingMe = followRepository.existsByUserIdAndFollowerId(authenticatedUserId, userId);
+
+            String followKey = FOLLOW_KEY_PREFIX + authenticatedUserId;
+            String followersKey = FOLLOWERS_KEY_PREFIX + userId;
+
+            // Check if the relationship exists in Redis
+            Boolean isFollowingInRedis = redisTemplate.opsForSet().isMember(followKey, userId.toString());
+            Boolean isFollowingMeInRedis = redisTemplate.opsForSet().isMember(followersKey, authenticatedUserId.toString());
+
+            boolean isFollowing;
+            boolean isFollowingMe;
+
+            if (isFollowingInRedis == null) {
+                // Fetch from database if not found in Redis
+                logger.info("isFollowing not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
+                isFollowing = followRepository.existsByUserIdAndFollowerId(userId, authenticatedUserId);
+                if (isFollowing) {
+                    redisTemplate.opsForSet().add(followKey, userId.toString());
+                }
+                redisTemplate.expire(followKey, Duration.ofHours(1));
+            } else {
+                isFollowing = isFollowingInRedis;
+                redisTemplate.expire(followKey, Duration.ofHours(1));
+            }
+
+            if (isFollowingMeInRedis == null) {
+                // Fetch from database if not found in Redis
+                logger.info("isFollowingMe not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
+                isFollowingMe = followRepository.existsByUserIdAndFollowerId(authenticatedUserId, userId);
+                if (isFollowingMe) {
+                    redisTemplate.opsForSet().add(followersKey, authenticatedUserId.toString());
+                }
+
+            } else {
+                isFollowingMe = isFollowingMeInRedis;
+            }
+            redisTemplate.expire(followersKey, Duration.ofHours(1));
 
             return new UserPublicData(
                     publicData.getUsername(),
