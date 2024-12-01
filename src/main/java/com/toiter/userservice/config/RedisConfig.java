@@ -18,6 +18,12 @@ public class RedisConfig {
     @Value("${spring.data.redis.port}")
     private int redisPort;
 
+    /**
+     * Configura um RedisTemplate para armazenar valores do tipo Long.
+     *
+     * @param connectionFactory a fábrica de conexões Redis
+     * @return um RedisTemplate configurado para chaves do tipo String e valores do tipo Long
+     */
     @Bean
     public RedisTemplate<String, Long> redisTemplateForLong(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, Long> template = new RedisTemplate<>();
@@ -27,6 +33,12 @@ public class RedisConfig {
         return template;
     }
 
+    /**
+     * Configura um RedisTemplate para armazenar valores do tipo UserPublicData.
+     *
+     * @param connectionFactory a fábrica de conexões Redis
+     * @return um RedisTemplate configurado para chaves do tipo String e valores do tipo UserPublicData
+     */
     @Bean
     public RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData(RedisConnectionFactory connectionFactory) {
         RedisTemplate<String, UserPublicData> template = new RedisTemplate<>();
