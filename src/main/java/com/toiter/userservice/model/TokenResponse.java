@@ -1,7 +1,11 @@
 package com.toiter.userservice.model;
 
+import jakarta.validation.constraints.NotNull;
+
 public class TokenResponse {
+    @NotNull(message = "Access token is required")
     private String accessToken;
+    @NotNull(message = "Refresh token is required")
     private String refreshToken;
     private String tokenType = "Bearer";
     private long expiresIn;
