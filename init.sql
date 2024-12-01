@@ -7,15 +7,6 @@ CREATE SCHEMA usr;
 -- Alterar a propriedade do schema para o usuário 'usr'
 ALTER SCHEMA usr OWNER TO usr;
 
-DO $$
-    BEGIN
-        EXECUTE (
-            SELECT string_agg('ALTER TABLE ' || table_schema || '.' || table_name || ' OWNER TO usr;', ' ')
-            FROM information_schema.tables
-            WHERE table_schema = 'usr'
-        );
-    END $$;
-
 -- Create the Images table
 CREATE TABLE usr.images (
                             id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -68,3 +59,12 @@ CREATE TABLE usr.followers (
 -- Create indexes to optimize queries on the Followers table
 CREATE INDEX idx_followers_user_id ON usr.followers (user_id);
 CREATE INDEX idx_followers_follower_id ON usr.followers (follower_id);
+
+DO $$
+    BEGIN
+        EXECUTE (
+            SELECT string_agg('ALTER TABLE ' || table_schema || '.' || table_name || ' OWNER TO usr;', ' ')
+            FROM information_schema.tables
+            WHERE table_schema = 'usr'
+        );
+    END $$;
