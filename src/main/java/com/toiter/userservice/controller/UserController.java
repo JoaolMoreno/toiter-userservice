@@ -4,6 +4,7 @@ import com.toiter.userservice.model.UpdatedUser;
 import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class UserController {
     }
 
     @PutMapping("/")
-    public ResponseEntity<Void> updateUser(@RequestBody UpdatedUser updatedUser, Authentication authentication) {
+    public ResponseEntity<Void> updateUser(@RequestBody @NotNull UpdatedUser updatedUser, Authentication authentication) {
         Long id = authService.getUserIdFromAuthentication(authentication);
         userService.updateUser(id, updatedUser);
         return ResponseEntity.noContent().build();
@@ -45,7 +46,7 @@ public class UserController {
     }
 
     @GetMapping("/{username}")
-    public UserPublicData getPublicUserData(@PathVariable String username, Authentication authentication) {
+    public UserPublicData getPublicUserData(@PathVariable @NotNull String username, Authentication authentication) {
         Long authenticatedUserId = authService.getUserIdFromAuthentication(authentication);
         return userService.getPublicUserDataByUsername(username, authenticatedUserId);
     }

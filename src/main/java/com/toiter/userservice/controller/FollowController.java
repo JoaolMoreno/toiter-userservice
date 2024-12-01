@@ -4,6 +4,7 @@ import com.toiter.userservice.entity.Follow;
 import com.toiter.userservice.service.FollowService;
 import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.UserService;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,20 +24,20 @@ public class FollowController {
     }
 
     @GetMapping("/{username}/followers")
-    public List<Follow> getFollowers(@PathVariable String username) {
+    public List<Follow> getFollowers(@PathVariable @NotNull String username) {
         Long userId = userService.getUserByUsername(username).getId();
         return followService.getFollowers(userId);
     }
 
     @GetMapping("/{username}/followings")
-    public List<Follow> getFollowings(@PathVariable String username) {
+    public List<Follow> getFollowings(@PathVariable @NotNull String username) {
         Long userId = userService.getUserByUsername(username).getId();
         return followService.getFollowings(userId);
     }
 
     @PostMapping("/{username}/follow")
     public Follow followUser(
-            @PathVariable String username,
+            @PathVariable @NotNull String username,
             @RequestHeader("Authorization") String token) {
         String followerUsername = extractUsernameFromToken(token);
         Long followerId = userService.getUserByUsername(followerUsername).getId();
@@ -49,7 +50,7 @@ public class FollowController {
 
     @DeleteMapping("/{username}/unfollow")
     public void unfollowUser(
-            @PathVariable String username,
+            @PathVariable @NotNull String username,
             @RequestHeader("Authorization") String token) {
         String followerUsername = extractUsernameFromToken(token);
         Long followerId = userService.getUserByUsername(followerUsername).getId();
@@ -60,7 +61,7 @@ public class FollowController {
         followService.unfollowUser(userId, followerId);
     }
 
-    private String extractUsernameFromToken(String token) {
+    private String extractUsernameFromToken(@NotNull String token) {
         String jwt = token.replace("Bearer ", "");
         return jwtService.extractUsername(jwt);
     }

@@ -3,6 +3,8 @@ package com.toiter.userservice.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +24,7 @@ public class JwtService {
     private long refreshTokenExpiration;
 
 
-    public String generateToken(String username, Long userId) {
+    public String generateToken(@NotNull String username, @NotNull @Min(1) Long userId) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId)
@@ -32,23 +34,23 @@ public class JwtService {
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    public String extractUsername(@NotNull String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+    public <T> T extractClaim(@NotNull String token, Function<Claims, T> claimsResolver) {
         Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    private Claims extractAllClaims(String token) {
+    private Claims extractAllClaims(@NotNull String token) {
         return Jwts.parser()
                 .setSigningKey(secret)
                 .parseClaimsJws(token)
                 .getBody();
     }
 
-    public Long extractUserId(String token) {
+    public Long extractUserId(@NotNull String token) {
         Claims claims = Jwts.parser()
                 .setSigningKey(secret)
                 .parseClaimsJws(token)
@@ -58,15 +60,15 @@ public class JwtService {
     }
 
 
-    public boolean isTokenValid(String token, String email) {
+    public boolean isTokenValid(@NotNull String token,@NotNull String email) {
         return email.equals(extractUsername(token)) && !isTokenExpired(token);
     }
 
-    private boolean isTokenExpired(String token) {
+    private boolean isTokenExpired(@NotNull String token) {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
-    public String generateRefreshToken(String username, Long userId) {
+    public String generateRefreshToken(@NotNull String username, @NotNull @Min(1) Long userId) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId)

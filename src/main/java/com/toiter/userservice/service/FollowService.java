@@ -5,6 +5,8 @@ import com.toiter.userservice.model.FollowCreatedEvent;
 import com.toiter.userservice.model.FollowDeletedEvent;
 import com.toiter.userservice.producer.KafkaProducer;
 import com.toiter.userservice.repository.FollowRepository;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -36,7 +38,7 @@ public class FollowService {
     }
 
     @Transactional
-    public Follow followUser(Long userId, Long followerId) {
+    public Follow followUser(@NotNull @Min(1) Long userId, @NotNull @Min(1) Long followerId) {
         logger.info("User {} is attempting to follow user {}", followerId, userId);
 
         Follow follow = new Follow();
@@ -71,7 +73,7 @@ public class FollowService {
     }
 
     @Transactional
-    public void unfollowUser(Long userId, Long followerId) {
+    public void unfollowUser(@NotNull @Min(1) Long userId, @NotNull @Min(1) Long followerId) {
         logger.info("User {} is attempting to unfollow user {}", followerId, userId);
 
         Optional<Follow> follow = followRepository.findByUserIdAndFollowerId(userId, followerId);

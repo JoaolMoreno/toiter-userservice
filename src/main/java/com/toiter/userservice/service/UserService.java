@@ -8,6 +8,8 @@ import com.toiter.userservice.repository.FollowRepository;
 import com.toiter.userservice.repository.UserRepository;
 
 import jakarta.transaction.Transactional;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -50,7 +52,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateUser(Long id, UpdatedUser updatedUser) {
+    public void updateUser(@NotNull @Min(1) Long id,@NotNull UpdatedUser updatedUser) {
         logger.info("Starting user update for ID: {}", id);
 
         User user = userRepository.findById(id)
@@ -66,7 +68,7 @@ public class UserService {
                 logger.error("Username exceeds 255 characters: {}", updatedUser.username());
                 throw new IllegalArgumentException("Username cannot exceed 255 characters");
             }
-            logger.info("Updating username for user ID {}: {}", id, updatedUser.username());
+            logger.debug("Updating username for user ID {}: {}", id, updatedUser.username());
             user.setUsername(updatedUser.username());
             updated = true;
         }
@@ -76,7 +78,7 @@ public class UserService {
                 logger.error("Invalid email format: {}", updatedUser.email());
                 throw new IllegalArgumentException("Invalid email format");
             }
-            logger.info("Updating email for user ID {}: {}", id, updatedUser.email());
+            logger.debug("Updating email for user ID {}: {}", id, updatedUser.email());
             user.setEmail(updatedUser.email());
             updated = true;
         }
@@ -86,7 +88,7 @@ public class UserService {
                 logger.error("Bio exceeds 255 characters for user ID {}: {}", id, updatedUser.bio());
                 throw new IllegalArgumentException("Bio cannot exceed 255 characters");
             }
-            logger.info("Updating bio for user ID {}: {}", id, updatedUser.bio());
+            logger.debug("Updating bio for user ID {}: {}", id, updatedUser.bio());
             user.setBio(updatedUser.bio());
             updated = true;
         }
@@ -96,7 +98,7 @@ public class UserService {
                 userRepository.save(user);
                 UserUpdatedEvent event = new UserUpdatedEvent(user);
                 kafkaProducer.sendUserUpdatedEvent(event);
-                logger.info("User updated successfully for ID: {}", id);
+                logger.debug("User updated successfully for ID: {}", id);
             }
         } catch (DataIntegrityViolationException e) {
             String cause = e.getCause() != null ? e.getCause().getMessage() : "Unknown";
@@ -111,7 +113,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateProfileImage(Long userId, MultipartFile imageFile) throws IOException {
+    public void updateProfileImage(@NotNull @Min(1) Long userId, MultipartFile imageFile) throws IOException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -125,7 +127,7 @@ public class UserService {
     }
 
     @Transactional
-    public void updateHeaderImage(Long userId, MultipartFile imageFile) throws IOException {
+    public void updateHeaderImage(@NotNull @Min(1) Long userId, MultipartFile imageFile) throws IOException {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
@@ -138,7 +140,7 @@ public class UserService {
         kafkaProducer.sendUserUpdatedEvent(event);
     }
 
-    public UserPublicData getPublicUserDataByUsername(String username, Long authenticatedUserId) {
+    public UserPublicData getPublicUserDataByUsername(@NotNull String username, @NotNull @Min(1) Long authenticatedUserId) {
         logger.info("Fetching public data for username: {}", username);
 
         ValueOperations<String, Long> valueOpsForLong = redisTemplateForLong.opsForValue();
@@ -147,7 +149,7 @@ public class UserService {
         Long userId = rawValue != null ? rawValue.longValue() : null;
 
         if (userId == null) {
-            logger.info("User ID not found in cache for username: {}. Fetching from database.", username);
+            logger.debug("User ID not found in cache for username: {}. Fetching from database.", username);
             userId = userRepository.findUserIdByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
             valueOpsForLong.set(userIdKey, userId);
@@ -160,8 +162,8 @@ public class UserService {
         UserPublicData publicData = valueOpsForPublicData.get(publicDataKey);
 
         if (publicData == null) {
-            logger.info("User public data not found in cache for ID: {}. Fetching from database.", userId);
-            UserPublicProjection userProjection = userRepository.findProjectedByUsername(username)
+            logger.debug("User public data not found in cache for ID: {}. Fetching from database.", userId);
+            UserPublicProjection userProjection = userRepository.findProjectedById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
             int followersCount = followRepository.countByUserId(userId);
@@ -183,7 +185,7 @@ public class UserService {
         logger.debug("Fetched public data for ID {}: {}", userId, publicData);
 
         if (!userId.equals(authenticatedUserId)) {
-            logger.info("Processing relationship data (isFollowing, isFollowingMe) for user ID: {}", userId);
+            logger.debug("Processing relationship data (isFollowing, isFollowingMe) for user ID: {}", userId);
 
             String followKey = FOLLOW_KEY_PREFIX + authenticatedUserId;
             String followersKey = FOLLOWERS_KEY_PREFIX + userId;
@@ -197,7 +199,7 @@ public class UserService {
 
             if (isFollowingInRedis == null) {
                 // Fetch from database if not found in Redis
-                logger.info("isFollowing not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
+                logger.debug("isFollowing not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
                 isFollowing = followRepository.existsByUserIdAndFollowerId(userId, authenticatedUserId);
                 if (isFollowing) {
                     redisTemplate.opsForSet().add(followKey, userId.toString());
@@ -210,7 +212,7 @@ public class UserService {
 
             if (isFollowingMeInRedis == null) {
                 // Fetch from database if not found in Redis
-                logger.info("isFollowingMe not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
+                logger.debug("isFollowingMe not found in Redis for authenticatedUserId: {}, userId: {}. Fetching from database.", authenticatedUserId, userId);
                 isFollowingMe = followRepository.existsByUserIdAndFollowerId(authenticatedUserId, userId);
                 if (isFollowingMe) {
                     redisTemplate.opsForSet().add(followersKey, authenticatedUserId.toString());
@@ -236,7 +238,8 @@ public class UserService {
         return publicData;
     }
 
-    public void registerUser(User user) {
+    public void registerUser(@NotNull User user) {
+        logger.info("Registering user {}", user.getUsername());
         Optional<User> existingUserByEmail = userRepository.findByEmail(user.getEmail());
         if (existingUserByEmail.isPresent()) {
             throw new IllegalArgumentException("Email is already in use");

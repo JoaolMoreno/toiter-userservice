@@ -6,6 +6,7 @@ import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -27,13 +28,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
         TokenResponse tokenResponse = authService.authenticateAndGenerateTokens(loginRequest);
         return ResponseEntity.ok(tokenResponse);
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(@RequestBody TokenResponse tokenResponse) {
+    public ResponseEntity<TokenResponse> refresh(@RequestBody @Valid @NotNull TokenResponse tokenResponse) {
         TokenResponse newTokenResponse = authService.refreshTokens(tokenResponse);
         return ResponseEntity.ok(newTokenResponse);
     }
