@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
@@ -49,7 +50,9 @@ public class AuthController {
         return ResponseEntity.ok(tokenResponse);
     }
 
-    @Operation(summary = "Atualizar token de acesso", description = "Atualiza um token de acesso expirado")
+    @Operation(summary = "Atualizar token de acesso",
+            description = "Atualiza um token de acesso expirado",
+            security = {@SecurityRequirement(name = "bearerAuth")})
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Token atualizado com sucesso",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))),

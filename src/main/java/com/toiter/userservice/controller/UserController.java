@@ -4,6 +4,7 @@ import com.toiter.userservice.model.UpdatedUser;
 import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.constraints.NotNull;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -38,6 +39,7 @@ public class UserController {
     @Operation(
             summary = "Atualizar dados do usuário",
             description = "Atualiza os dados do usuário autenticado com base no objeto fornecido",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     description = "Objeto com os dados atualizados do usuário",
@@ -64,6 +66,7 @@ public class UserController {
     @Operation(
             summary = "Atualizar imagem de perfil",
             description = "Atualiza a imagem de perfil do usuário autenticado",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "204", description = "Imagem de perfil atualizada com sucesso"),
                     @ApiResponse(responseCode = "400", description = "Formato de imagem inválido"),
@@ -82,6 +85,7 @@ public class UserController {
     @Operation(
             summary = "Atualizar imagem de cabeçalho",
             description = "Atualiza a imagem de cabeçalho do usuário autenticado",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "204", description = "Imagem de cabeçalho atualizada com sucesso"),
                     @ApiResponse(responseCode = "400", description = "Formato de imagem inválido"),
@@ -100,6 +104,7 @@ public class UserController {
     @Operation(
             summary = "Obter dados públicos do usuário",
             description = "Retorna os dados públicos do usuário com base no nome de usuário fornecido",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Dados do usuário retornados com sucesso",
                             content = @Content(
@@ -120,6 +125,7 @@ public class UserController {
     @Operation(
             summary = "Buscar usuários por nome de usuário",
             description = "Retorna uma lista paginada de nomes de usuários que correspondem ao filtro fornecido",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de usuários retornada com sucesso"),
                     @ApiResponse(responseCode = "400", description = "Parâmetros de busca inválidos")

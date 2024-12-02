@@ -6,6 +6,7 @@ import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -34,6 +35,7 @@ public class FollowController {
     @Operation(
             summary = "Obter seguidores de um usuário",
             description = "Retorna a lista de seguidores de um usuário específico",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de seguidores retornada com sucesso",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = Follow.class))),
@@ -49,6 +51,7 @@ public class FollowController {
     @Operation(
             summary = "Obter seguidos de um usuário",
             description = "Retorna a lista de usuários que um usuário segue",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de seguidos retornada com sucesso",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = Follow.class))),
@@ -64,6 +67,7 @@ public class FollowController {
     @Operation(
             summary = "Seguir um usuário",
             description = "Permite que um usuário siga outro. O usuário não pode seguir a si mesmo",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Usuário seguido com sucesso",
                             content = @Content(mediaType = "application/json", schema = @Schema(implementation = Follow.class))),
@@ -87,6 +91,7 @@ public class FollowController {
     @Operation(
             summary = "Deixar de seguir um usuário",
             description = "Permite que um usuário deixe de seguir outro. O usuário não pode deixar de seguir a si mesmo",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "204", description = "Usuário deixado de seguir com sucesso"),
                     @ApiResponse(responseCode = "400", description = "Não é possível deixar de seguir a si mesmo"),

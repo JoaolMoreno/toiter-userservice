@@ -5,6 +5,7 @@ import com.toiter.userservice.service.ImageService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ public class ImageController {
     @Operation(
             summary = "Obter imagem por ID",
             description = "Retorna uma imagem com base no ID fornecido. Se a imagem não for encontrada, retorna uma resposta HTTP 404.",
+            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Imagem retornada com sucesso",
                             content = @Content(mediaType = "image/jpeg")),
