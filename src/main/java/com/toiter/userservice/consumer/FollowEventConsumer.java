@@ -55,11 +55,11 @@ public class FollowEventConsumer {
                 if (isFollowing) {
                     int newFollowingCount = Math.max(0, publicData.getFollowingCount() + delta);
                     publicData.setFollowingCount(newFollowingCount);
-                    logger.info("Updated following count for user ID: {}. New count: {}", userId, newFollowingCount);
+                    logger.debug("Updated following count for user ID: {}. New count: {}", userId, newFollowingCount);
                 } else {
                     int newFollowerCount = Math.max(0, publicData.getFollowersCount() + delta);
                     publicData.setFollowersCount(newFollowerCount);
-                    logger.info("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
+                    logger.debug("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
                 }
                 redisTemplateForUserPublicData.opsForValue().set(userPublicDataKey, publicData);
             }
