@@ -97,7 +97,7 @@ services:
       retries: 5
 
   toiter-user-service:
-    image: toiter-user-service:latest
+    image: lopesz3r4/toiter-user-service:latest
     container_name: toiter-user-service-1
     depends_on:
       postgres:
