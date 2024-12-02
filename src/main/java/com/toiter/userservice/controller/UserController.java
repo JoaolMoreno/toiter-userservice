@@ -5,12 +5,15 @@ import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/users")
@@ -49,5 +52,22 @@ public class UserController {
     public UserPublicData getPublicUserData(@PathVariable @NotNull String username, Authentication authentication) {
         Long authenticatedUserId = authService.getUserIdFromAuthentication(authentication);
         return userService.getPublicUserDataByUsername(username, authenticatedUserId);
+    }
+
+    @GetMapping("/query")
+    public Map<String, Object> getExistingUsers(
+            @RequestParam String username,
+            @RequestParam int page,
+            @RequestParam int size) {
+        Page<String> users = userService.getExistingUsers(username, page, size);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", users.getContent());
+        response.put("page", users.getNumber());
+        response.put("size", users.getSize());
+        response.put("totalElements", users.getTotalElements());
+        response.put("totalPages", users.getTotalPages());
+
+        return response;
     }
 }
