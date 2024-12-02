@@ -233,6 +233,11 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
+    public Long getUserIdByUsername(String username) {
+        return userRepository.findUserIdByUsername(username)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
     public Page<String> getExistingUsers(String username, int page, int size) {
         String usernameQuery = username.toLowerCase();
         Pageable pageable = PageRequest.of(page, size);
