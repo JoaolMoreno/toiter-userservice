@@ -23,35 +23,48 @@ public class FollowEventConsumer {
     @KafkaListener(topics = "follow-created-topic", groupId = "follow-event-consumers")
     public void consumeFollowCreatedEvent(FollowCreatedEvent event) {
         Long userId = event.getUserId();
-        logger.info("Processing Follow Created Event: userId={} followed by followerId={}", userId, event.getFollowerId());
+        Long followerId = event.getFollowerId();
+        logger.info("Processing Follow Created Event: userId={} followed by followerId={}", userId, followerId);
 
-        processFollowEvent(userId, 1, "Follow Created");
+        processFollowEvent(userId, followerId, 1, "Follow Created");
     }
 
     @KafkaListener(topics = "follow-deleted-topic", groupId = "follow-event-consumers")
     public void consumeFollowDeletedEvent(FollowDeletedEvent event) {
         Long userId = event.getUserId();
-        logger.info("Processing Follow Deleted Event: userId={} unfollowed by followerId={}", userId, event.getFollowerId());
+        Long followerId = event.getFollowerId();
+        logger.info("Processing Follow Deleted Event: userId={} unfollowed by followerId={}", userId, followerId);
 
-        processFollowEvent(userId, -1, "Follow Deleted");
+        processFollowEvent(userId, followerId, -1, "Follow Deleted");
     }
 
-    private void processFollowEvent(Long userId, int delta, String eventType) {
+    private void processFollowEvent(Long userId, Long followerId, int delta, String eventType) {
+        logger.info("Processing {} for user ID: {} and follower ID: {}", eventType, userId, followerId);
+
+        updateUserCount(userId, delta, false);
+        updateUserCount(followerId, delta, true);
+    }
+
+    private void updateUserCount(Long userId, int delta, boolean isFollowing) {
         String userPublicDataKey = USER_PUBLIC_DATA_KEY_PREFIX + userId;
-        logger.info("Processing {} for user ID: {}", eventType, userId);
 
         if (Boolean.TRUE.equals(redisTemplateForUserPublicData.hasKey(userPublicDataKey))) {
             UserPublicData publicData = redisTemplateForUserPublicData.opsForValue().get(userPublicDataKey);
 
             if (publicData != null) {
-                int newFollowerCount = Math.max(0, publicData.getFollowersCount() + delta);
-                publicData.setFollowersCount(newFollowerCount);
+                if (isFollowing) {
+                    int newFollowingCount = Math.max(0, publicData.getFollowingCount() + delta);
+                    publicData.setFollowingCount(newFollowingCount);
+                    logger.info("Updated following count for user ID: {}. New count: {}", userId, newFollowingCount);
+                } else {
+                    int newFollowerCount = Math.max(0, publicData.getFollowersCount() + delta);
+                    publicData.setFollowersCount(newFollowerCount);
+                    logger.info("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
+                }
                 redisTemplateForUserPublicData.opsForValue().set(userPublicDataKey, publicData);
-
-                logger.info("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
             }
         } else {
-            logger.warn("User ID {} not found in Redis. Skipping {}.", userId, eventType);
+            logger.warn("User ID {} not found in Redis. Skipping update.", userId);
         }
     }
 }
