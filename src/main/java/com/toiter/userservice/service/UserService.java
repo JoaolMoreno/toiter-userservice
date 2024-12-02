@@ -24,7 +24,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -207,19 +206,25 @@ public class UserService {
         return publicData;
     }
 
-    public void registerUser(@NotNull User user) {
-        logger.info("Registering user {}", user.getUsername());
-        Optional<User> existingUserByEmail = userRepository.findByEmail(user.getEmail());
+    public void registerUser(@NotNull UserRequest userRequest) {
+        logger.info("Registering user {}", userRequest.getUsername());
+
+        Optional<User> existingUserByEmail = userRepository.findByEmail(userRequest.getEmail());
         if (existingUserByEmail.isPresent()) {
             throw new IllegalArgumentException("Email is already in use");
         }
 
-        Optional<User> existingUserByUsername = userRepository.findByUsername(user.getUsername());
+        Optional<User> existingUserByUsername = userRepository.findByUsername(userRequest.getUsername());
         if (existingUserByUsername.isPresent()) {
             throw new IllegalArgumentException("Username is already in use");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setUsername(userRequest.getUsername());
+        user.setEmail(userRequest.getEmail());
+        user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
+        user.setBio(userRequest.getBio());
+
         userRepository.save(user);
     }
 

@@ -1,8 +1,8 @@
 package com.toiter.userservice.controller;
 
-import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.LoginRequest;
 import com.toiter.userservice.model.TokenResponse;
+import com.toiter.userservice.model.UserRequest;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,8 +33,8 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Dados do usuário inválidos")
     })
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody User user) {
-        userService.registerUser(user);
+    public ResponseEntity<String> register(@Valid @RequestBody UserRequest userRequest) {
+        userService.registerUser(userRequest);
         return ResponseEntity.ok("Usuário registrado com sucesso");
     }
 

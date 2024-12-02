@@ -74,7 +74,12 @@ public class UserController {
             }
     )
     public ResponseEntity<Void> updateProfileImage(
-            @RequestParam("image") @Parameter(description = "Arquivo de imagem para o perfil") MultipartFile image,
+            @RequestParam("image")
+            @Parameter(
+                    description = "Arquivo de imagem para o perfil",
+                    required = true,
+                    content = @Content(mediaType = "multipart/form-data")
+            ) MultipartFile image,
             Authentication authentication) throws IOException {
         Long userId = authService.getUserIdFromAuthentication(authentication);
         userService.updateProfileImage(userId, image);
@@ -93,7 +98,12 @@ public class UserController {
             }
     )
     public ResponseEntity<Void> updateHeaderImage(
-            @RequestParam("image") @Parameter(description = "Arquivo de imagem para o cabeçalho") MultipartFile image,
+            @RequestParam("image")
+            @Parameter(
+                    description = "Arquivo de imagem para o cabeçalho",
+                    required = true,
+                    content = @Content(mediaType = "multipart/form-data")
+            ) MultipartFile image,
             Authentication authentication) throws IOException {
         Long userId = authService.getUserIdFromAuthentication(authentication);
         userService.updateHeaderImage(userId, image);
