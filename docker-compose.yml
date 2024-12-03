@@ -119,6 +119,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SERVICE_SHARED_KEY: ${SERVICE_SHARED_KEY}
+      SERVER_URL: ${SERVER_URL}
     volumes:
       - ./logs:/app/logs
 
