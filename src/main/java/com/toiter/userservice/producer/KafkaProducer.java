@@ -1,5 +1,7 @@
 package com.toiter.userservice.producer;
 
+import com.toiter.userservice.model.FollowCreatedEvent;
+import com.toiter.userservice.model.FollowDeletedEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -12,16 +14,16 @@ public class KafkaProducer {
         this.kafkaTemplate = kafkaTemplate;
     }
 
-    public void sendFollowCreatedEvent(Object event) {
+    public void sendFollowCreatedEvent(FollowCreatedEvent event) {
         kafkaTemplate.executeInTransaction(operations -> {
-            operations.send("follow-created-topic", event);
+            operations.send("follow-events-topic", event);
             return true;
         });
     }
 
-    public void sendFollowDeletedEvent(Object event) {
+    public void sendFollowDeletedEvent(FollowDeletedEvent event) {
         kafkaTemplate.executeInTransaction(operations -> {
-            operations.send("follow-deleted-topic", event);
+            operations.send("follow-events-topic", event);
             return true;
         });
     }

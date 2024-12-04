@@ -20,8 +20,17 @@ public class FollowEventConsumer {
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
     }
 
-    @KafkaListener(topics = "follow-created-topic", groupId = "follow-event-consumers")
-    public void consumeFollowCreatedEvent(FollowCreatedEvent event) {
+    @KafkaListener(topics = "follow-events-topic", groupId = "follow-event-consumers")
+    public void consumeFollowEvent(Object event) {
+        logger.debug("Received follow event: {}", event);
+        switch (event) {
+            case FollowCreatedEvent followCreatedEvent -> consumeFollowCreatedEvent(followCreatedEvent);
+            case FollowDeletedEvent followDeletedEvent -> consumeFollowDeletedEvent(followDeletedEvent);
+            default -> logger.error("Unknown event type: {}", event.getClass().getName());
+        }
+    }
+
+    private void consumeFollowCreatedEvent(FollowCreatedEvent event) {
         Long userId = event.getUserId();
         Long followerId = event.getFollowerId();
         logger.info("Processing Follow Created Event: userId={} followed by followerId={}", userId, followerId);
@@ -29,8 +38,7 @@ public class FollowEventConsumer {
         processFollowEvent(userId, followerId, 1, "Follow Created");
     }
 
-    @KafkaListener(topics = "follow-deleted-topic", groupId = "follow-event-consumers")
-    public void consumeFollowDeletedEvent(FollowDeletedEvent event) {
+    private void consumeFollowDeletedEvent(FollowDeletedEvent event) {
         Long userId = event.getUserId();
         Long followerId = event.getFollowerId();
         logger.info("Processing Follow Deleted Event: userId={} unfollowed by followerId={}", userId, followerId);
