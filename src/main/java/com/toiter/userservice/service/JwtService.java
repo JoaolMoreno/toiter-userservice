@@ -60,8 +60,10 @@ public class JwtService {
     }
 
 
-    public boolean isTokenValid(@NotNull String token,@NotNull String email) {
-        return email.equals(extractUsername(token)) && !isTokenExpired(token);
+    public boolean isTokenValid(@NotNull String token) {
+        return !isTokenExpired(token);
+
+        // TODO: Verificar se o token foi revogado
     }
 
     private boolean isTokenExpired(@NotNull String token) {
@@ -80,5 +82,9 @@ public class JwtService {
 
     public long getAccessTokenExpiration() {
         return accessTokenExpiration / 1000; // Segundos
+    }
+
+    public Date getTokenExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration);
     }
 }
