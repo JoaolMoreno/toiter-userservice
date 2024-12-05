@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
@@ -11,10 +9,12 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     healthcheck:
-      test: ["CMD", "zookeeper-shell", "localhost:2181", "ls", "/"]
+      test: [ "CMD", "zookeeper-shell", "localhost:2181", "ls", "/" ]
       interval: 30s
       timeout: 10s
       retries: 5
+    mem_limit: 512m
+    cpus: "0.5"
 
   kafka:
     image: confluentinc/cp-kafka:7.6.0
@@ -40,18 +40,13 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_CREATE_TOPICS: >
         post-created-topic:1:1,
-        like-created-topic:1:1,
         repost-created-topic:1:1,
-        reply-created-topic:1:1,
         view-registered-topic:1:1,
-        follow-created-topic:1:1,
-        follow-deleted-topic:1:1,
+        follow-events-topic:1:1,
+        like-events-topic:1:1,
         user-updated-topic:1:1
-    healthcheck:
-      test: ["CMD", "kafka-topics", "--bootstrap-server", "localhost:9092", "--list"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+    mem_limit: 1g
+    cpus: "1.0"
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
@@ -64,6 +59,8 @@ services:
     depends_on:
       kafka:
         condition: service_healthy
+    mem_limit: 512m
+    cpus: "0.5"
 
   postgres:
     image: postgres:15
@@ -81,6 +78,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    mem_limit: 512m
+    cpus: "0.5"
 
   redis:
     image: redis:latest
@@ -95,6 +94,8 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+    mem_limit: 256m
+    cpus: "0.25"
 
   toiter-user-service:
     image: lopesz3r4/toiter-user-service:latest
@@ -122,6 +123,8 @@ services:
       SERVER_URL: ${SERVER_URL}
     volumes:
       - ./logs:/app/logs
+    mem_limit: 512m
+    cpus: "0.5"
 
 volumes:
   redis_data:
