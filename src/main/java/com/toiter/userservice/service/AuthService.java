@@ -4,6 +4,8 @@ import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.LoginRequest;
 import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.repository.UserRepository;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,20 +63,31 @@ public class AuthService {
         return (Long) principal;
     }
 
-    public TokenResponse refreshTokens(@Valid TokenResponse tokenResponse) {
-        if (tokenResponse.getAccessToken() == null) {
-            throw new NullPointerException("Access token cannot be null");
+    public TokenResponse refreshTokens(HttpServletRequest request) {
+        String refreshToken = null;
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("refresh_token".equals(cookie.getName())) {
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
         }
-        String username = jwtService.extractUsername(tokenResponse.getAccessToken());
-        Long userId = jwtService.extractUserId(tokenResponse.getAccessToken());
 
-        if (!jwtService.isTokenValid(tokenResponse.getRefreshToken(), username)) {
+        if (refreshToken == null) {
+            throw new IllegalArgumentException("Refresh token not found");
+        }
+
+        if (!jwtService.isTokenValid(refreshToken)) {
             throw new IllegalArgumentException("Invalid refresh token");
         }
+
+        String username = jwtService.extractUsername(refreshToken);
+        Long userId = jwtService.extractUserId(refreshToken);
 
         String newAccessToken = jwtService.generateToken(username, userId);
         long expiresIn = jwtService.getAccessTokenExpiration();
 
-        return new TokenResponse(newAccessToken, tokenResponse.getRefreshToken(), expiresIn);
+        return new TokenResponse(newAccessToken, null, expiresIn); // Refresh token is set on cookie
     }
 }

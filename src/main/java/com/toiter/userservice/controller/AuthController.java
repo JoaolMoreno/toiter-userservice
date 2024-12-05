@@ -4,6 +4,7 @@ import com.toiter.userservice.model.LoginRequest;
 import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.model.UserRequest;
 import com.toiter.userservice.service.AuthService;
+import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -11,8 +12,10 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,10 +24,12 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
     private final AuthService authService;
     private final UserService userService;
+    private final JwtService jwtService;
 
-    public AuthController(AuthService authService, UserService userService) {
+    public AuthController(AuthService authService, UserService userService, JwtService jwtService) {
         this.authService = authService;
         this.userService = userService;
+        this.jwtService = jwtService;
     }
 
     @Operation(summary = "Registrar um novo usuário", description = "Registra um novo usuário e retorna uma mensagem de sucesso")
@@ -45,9 +50,17 @@ public class AuthController {
             @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
     })
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest loginRequest) {
+    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.authenticateAndGenerateTokens(loginRequest);
-        return ResponseEntity.ok(tokenResponse);
+
+        Cookie refreshCookie = new Cookie("refresh_token", tokenResponse.getRefreshToken());
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/auth/refresh");
+        refreshCookie.setMaxAge(7 * 24 * 60 * 60);
+        response.addCookie(refreshCookie);
+
+        return ResponseEntity.ok(new TokenResponse(tokenResponse.getAccessToken(), null, tokenResponse.getExpiresIn()));
     }
 
     @Operation(summary = "Atualizar token de acesso",
@@ -59,8 +72,43 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Token de atualização inválido")
     })
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(@RequestBody @Valid @NotNull TokenResponse tokenResponse) {
-        TokenResponse newTokenResponse = authService.refreshTokens(tokenResponse);
+    public ResponseEntity<TokenResponse> refresh(HttpServletRequest request) {
+        TokenResponse newTokenResponse = authService.refreshTokens(request);
         return ResponseEntity.ok(newTokenResponse);
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletResponse response) {
+        Cookie refreshCookie = new Cookie("refresh_token", null);
+        refreshCookie.setHttpOnly(true);
+        refreshCookie.setSecure(true);
+        refreshCookie.setPath("/auth/refresh");
+        refreshCookie.setMaxAge(0);
+        response.addCookie(refreshCookie);
+
+        return ResponseEntity.ok("Logout bem-sucedido");
+    }
+
+    @Operation(summary = "Verificar a validade da sessão do usuário",
+            description = "Valida o token de acesso e retorna informações básicas do usuário")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Sessão válida"),
+            @ApiResponse(responseCode = "401", description = "Token inválido ou expirado")
+    })
+    @GetMapping("/check-session")
+    public ResponseEntity<TokenResponse> checkSession(@RequestHeader("Authorization") String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("Token não encontrado ou inválido");
+        }
+
+        String token = authorizationHeader.substring(7);
+
+        if (!jwtService.isTokenValid(token)) {
+            return ResponseEntity.status(401).body(null);
+        }
+        long expiresIn = jwtService.getTokenExpiration(token).getTime() / 1000;
+
+        return ResponseEntity.ok(new TokenResponse(token, null, expiresIn));
+    }
+
 }

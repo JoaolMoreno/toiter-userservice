@@ -22,7 +22,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
 
     @Value("${service.shared-key}")
-    private String sharedKey; // Token compartilhado para endpoints internos
+    private String sharedKey;
 
     public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
@@ -35,8 +35,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         final String authHeader = request.getHeader("Authorization");
 
-        // Ignorar validação para rotas públicas
-        if (path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+        // Ignorar validação para rotas públicas (já configuradas no SecurityConfig)
+        if (path.startsWith("/auth/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -49,7 +49,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Token compartilhado válido, continua a requisição sem validar JWT
             filterChain.doFilter(request, response);
             return;
         }
@@ -61,31 +60,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         final String jwt = authHeader.substring(7);
-        final String username;
 
         try {
-            username = jwtService.extractUsername(jwt);
+            String username = jwtService.extractUsername(jwt);
+
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                if (jwtService.isTokenValid(jwt)) {
+                    Long userId = jwtService.extractUserId(jwt);
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userId,
+                            null,
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                    );
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            }
         } catch (Exception e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token JWT inválido ou malformado");
             return;
         }
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            if (jwtService.isTokenValid(jwt, username)) {
-                Long userId = jwtService.extractUserId(jwt);
-
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userId, // Principal (ID do usuário)
-                        null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-                );
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
-        }
-
-        // Prosseguir com a requisição
         filterChain.doFilter(request, response);
     }
 }
