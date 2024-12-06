@@ -68,3 +68,17 @@ DO $$
             WHERE table_schema = 'usr'
         );
     END $$;
+
+CREATE VIEW vw_users AS
+SELECT
+    id,
+    username,
+    email,
+    bio,
+    profile_image_id,
+    header_image_id,
+    creation_date
+FROM usr.users;
+
+GRANT SELECT ON vw_users TO usr;
+GRANT SELECT ON vw_users TO pst;
