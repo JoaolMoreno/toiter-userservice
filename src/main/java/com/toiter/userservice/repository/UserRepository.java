@@ -7,13 +7,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     Optional<User> findByUsername(String username);
-    Optional<UserPublicProjection> findProjectedByUsername(String username);
     Optional<UserPublicProjection> findProjectedById(Long id);
 
     @Query("SELECT u.id FROM User u WHERE u.username = :username")
@@ -21,4 +19,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.username FROM User u WHERE lower(u.username) like %:username%")
     Page<String> findUsernamesByQuery(String username, Pageable pageable);
+
+    @Query("SELECT u.username FROM User u WHERE u.id = :userId")
+    Optional<String> findUsernameById(Long userId);
 }

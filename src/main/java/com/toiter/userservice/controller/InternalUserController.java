@@ -19,4 +19,11 @@ public class InternalUserController {
         Long userId = userService.getUserIdByUsername(username);
         return ResponseEntity.ok(userId);
     }
+
+    @GetMapping("/{userId}/username")
+    public ResponseEntity<String> getUsername(
+            @PathVariable Long userId) {
+        String username = userService.getUsernameByUserId(userId);
+        return ResponseEntity.ok(username);
+    }
 }
