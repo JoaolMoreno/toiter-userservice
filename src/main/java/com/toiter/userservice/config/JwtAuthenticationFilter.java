@@ -35,29 +35,38 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         final String authHeader = request.getHeader("Authorization");
 
+        logger.debug(String.format("Path: %s, AuthHeader: %s", path, authHeader));
+
         // Ignorar validação para rotas públicas (já configuradas no SecurityConfig)
         if (path.startsWith("/auth/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui")) {
+            logger.debug("Ignorando validação JWT para rota pública");
             filterChain.doFilter(request, response);
             return;
         }
 
         // Validação para /internal/** com token compartilhado
         if (path.startsWith("/internal/")) {
+            logger.debug("Validando token compartilhado para rota /internal/**");
             if (authHeader == null || !authHeader.equals("Bearer " + sharedKey)) {
+                logger.warn("Acesso não autorizado para /internal/**");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write("Acesso não autorizado para /internal/**");
                 return;
             }
 
+            logger.debug("Token compartilhado válido para rota /internal/**");
             filterChain.doFilter(request, response);
             return;
         }
 
+        logger.debug("Validando token JWT para outras rotas");
         // Validação JWT para outros endpoints
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            logger.warn("Token JWT não encontrado ou malformado");
             filterChain.doFilter(request, response);
             return;
         }
+        logger.debug("Token JWT encontrado");
 
         final String jwt = authHeader.substring(7);
 
