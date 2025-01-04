@@ -33,6 +33,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/register",
                                 "/auth/login",
+                                "/auth/logout",
+                                "/auth/refresh",
                                 "/auth/check-session",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -49,7 +51,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); // TODO: Alterar para o domínio correto
+        configuration.setAllowedOrigins(List.of("http://localhost:3000", "https://localhost:3000", "http://localhost", "https://localhost", "https://lpmrn.com", "https://toiter.lpmrn.com"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
