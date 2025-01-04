@@ -131,6 +131,26 @@ public class UserController {
         return userService.getPublicUserDataByUsername(username, authenticatedUserId);
     }
 
+    @GetMapping("/me")
+    @Operation(
+            summary = "Obter dados do usuário autenticado",
+            description = "Retorna os dados do usuário autenticado",
+            security = {@SecurityRequirement(name = "bearerAuth")},
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Dados do usuário retornados com sucesso",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = UserPublicData.class)
+                            )),
+                    @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
+            }
+    )
+    public UserPublicData getAuthenticatedUserData(Authentication authentication) {
+        Long authenticatedUserId = authService.getUserIdFromAuthentication(authentication);
+        String authenticatedUsername = userService.getUsernameByUserId(authenticatedUserId);
+        return userService.getPublicUserDataByUsername(authenticatedUsername, authenticatedUserId);
+    }
+
     @GetMapping("/query")
     @Operation(
             summary = "Buscar usuários por nome de usuário",
