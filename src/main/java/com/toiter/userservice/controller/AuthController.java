@@ -16,6 +16,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,12 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final JwtService jwtService;
+
+    @Value("${JWT_ACCESS_TOKEN_EXPIRATION}")
+    private Integer JWT_ACCESS_TOKEN_EXPIRATION;
+
+    @Value("${JWT_REFRESH_TOKEN_EXPIRATION}")
+    private Integer JWT_REFRESH_TOKEN_EXPIRATION;
 
     public AuthController(AuthService authService, UserService userService, JwtService jwtService) {
         this.authService = authService;
@@ -57,8 +64,15 @@ public class AuthController {
         refreshCookie.setHttpOnly(true);
         refreshCookie.setSecure(true);
         refreshCookie.setPath("/auth/refresh");
-        refreshCookie.setMaxAge(7 * 24 * 60 * 60);
+        refreshCookie.setMaxAge(JWT_REFRESH_TOKEN_EXPIRATION);
         response.addCookie(refreshCookie);
+
+        Cookie accessCookie = new Cookie("accessToken", tokenResponse.getAccessToken());
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(JWT_ACCESS_TOKEN_EXPIRATION);
+        response.addCookie(accessCookie);
 
         return ResponseEntity.ok(new TokenResponse(tokenResponse.getAccessToken(), null, tokenResponse.getExpiresIn()));
     }
