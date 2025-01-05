@@ -3,6 +3,7 @@ package com.toiter.userservice.consumer;
 import com.toiter.userservice.model.FollowCreatedEvent;
 import com.toiter.userservice.model.FollowDeletedEvent;
 import com.toiter.userservice.model.UserPublicData;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,7 +22,8 @@ public class FollowEventConsumer {
     }
 
     @KafkaListener(topics = "follow-events-topic", groupId = "follow-event-consumers")
-    public void consumeFollowEvent(Object event) {
+    public void consumeFollowEvent(ConsumerRecord<String, Object> record) {
+        Object event = record.value();
         logger.debug("Received follow event: {}", event);
         switch (event) {
             case FollowCreatedEvent followCreatedEvent -> consumeFollowCreatedEvent(followCreatedEvent);
