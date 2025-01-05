@@ -207,16 +207,21 @@ public class UserService {
     }
 
     public void registerUser(@NotNull UserRequest userRequest) {
-        logger.info("Registering user {}", userRequest.getUsername());
+        logger.info("Registrando usuário {}", userRequest.getUsername());
+
+        String username = userRequest.getUsername();
+        if (!username.matches("^[a-zA-Z0-9_]+$")) {
+            throw new IllegalArgumentException("Nome de usuário não pode conter caracteres especiais ou espaços");
+        }
 
         Optional<User> existingUserByEmail = userRepository.findByEmail(userRequest.getEmail());
         if (existingUserByEmail.isPresent()) {
-            throw new IllegalArgumentException("Email is already in use");
+            throw new IllegalArgumentException("Email já está em uso");
         }
 
         Optional<User> existingUserByUsername = userRepository.findByUsername(userRequest.getUsername());
         if (existingUserByUsername.isPresent()) {
-            throw new IllegalArgumentException("Username is already in use");
+            throw new IllegalArgumentException("Nome de usuário já está em uso");
         }
 
         User user = new User();
