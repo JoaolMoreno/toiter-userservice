@@ -17,10 +17,12 @@ public class UserPublicData {
 
     private Boolean isFollowingMe;
 
+    private Integer postsCount;
+
     public UserPublicData() {
     }
 
-    public UserPublicData(String username, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount, Boolean isFollowing, Boolean isFollowingMe) {
+    public UserPublicData(String username, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount, Boolean isFollowing, Boolean isFollowingMe, Integer postsCount) {
         this.username = username;
         this.bio = bio;
         this.profileImageId = profileImageId;
@@ -29,6 +31,7 @@ public class UserPublicData {
         this.followingCount = followingCount;
         this.isFollowing = isFollowing;
         this.isFollowingMe = isFollowingMe;
+        this.postsCount = postsCount;
     }
 
     public UserPublicData(String username, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount) {
@@ -38,6 +41,22 @@ public class UserPublicData {
         this.headerImageId = headerImageId;
         this.followersCount = followersCount;
         this.followingCount = followingCount;
+    }
+
+    public Boolean getFollowingMe() {
+        return isFollowingMe;
+    }
+
+    public void setFollowingMe(Boolean followingMe) {
+        isFollowingMe = followingMe;
+    }
+
+    public Integer getPostsCount() {
+        return postsCount;
+    }
+
+    public void setPostsCount(Integer postsCount) {
+        this.postsCount = postsCount;
     }
 
     public String getUsername() {

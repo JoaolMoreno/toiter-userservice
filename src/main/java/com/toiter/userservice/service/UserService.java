@@ -32,6 +32,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final FollowRepository followRepository;
+    private final PostClientService postClientService;
     private final ImageService imageService;
     private final RedisTemplate<String, Long> redisTemplateForLong;
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
@@ -40,10 +41,11 @@ public class UserService {
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository;
+        this.postClientService = postClientService;
         this.imageService = imageService;
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
@@ -168,6 +170,8 @@ public class UserService {
             int followersCount = followRepository.countByUserId(userId);
             int followingCount = followRepository.countByFollowerId(userId);
 
+            Integer postsCount = postClientService.getPostsCount(userId);
+
             publicData = new UserPublicData(
                     userProjection.getUsername(),
                     userProjection.getBio(),
@@ -176,7 +180,8 @@ public class UserService {
                     followersCount,
                     followingCount,
                     null,
-                    null
+                    null,
+                    postsCount
             );
             valueOpsForPublicData.set(publicDataKey, publicData);
         }
@@ -199,7 +204,8 @@ public class UserService {
                     publicData.getFollowersCount(),
                     publicData.getFollowingCount(),
                     isFollowing,
-                    isFollowingMe
+                    isFollowingMe,
+                    publicData.getPostsCount()
             );
         }
 
