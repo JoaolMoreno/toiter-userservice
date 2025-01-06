@@ -12,6 +12,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,6 +29,8 @@ import java.util.Optional;
 
 @Service
 public class UserService {
+    @Value("${SERVER_URL}")
+    private String serverUrl;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -258,5 +261,11 @@ public class UserService {
     public String getUsernameByUserId(Long userId) {
         return userRepository.findUsernameById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
+    public String getProfilePictureByUsername(String username) {
+        UserPublicData publicData = getPublicUserDataByUsername(username, null);
+        Long profileImageId = publicData.getProfileImageId();
+        return profileImageId != null ? serverUrl + "/images/" + profileImageId : null;
     }
 }

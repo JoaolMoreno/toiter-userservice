@@ -26,4 +26,11 @@ public class InternalUserController {
         String username = userService.getUsernameByUserId(userId);
         return ResponseEntity.ok(username);
     }
+
+    @GetMapping("/{username}/profile-picture")
+    public ResponseEntity<String> getProfilePicture(
+            @PathVariable String username) {
+        String profilePicture = userService.getProfilePictureByUsername(username);
+        return ResponseEntity.ok(profilePicture);
+    }
 }
