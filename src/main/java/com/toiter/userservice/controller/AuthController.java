@@ -100,6 +100,13 @@ public class AuthController {
         refreshCookie.setMaxAge(0);
         response.addCookie(refreshCookie);
 
+        Cookie accessCookie = new Cookie("accessToken", null);
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(0);
+        response.addCookie(accessCookie);
+
         return ResponseEntity.ok("Logout bem-sucedido");
     }
 
