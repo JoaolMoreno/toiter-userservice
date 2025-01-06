@@ -38,7 +38,8 @@ public class SecurityConfig {
                                 "/auth/check-session",
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
-                                "/swagger-ui.html"
+                                "/swagger-ui.html",
+                                "/images/**"
                         ).permitAll()
                         .requestMatchers("/internal/**").permitAll()
                         .anyRequest().authenticated()
