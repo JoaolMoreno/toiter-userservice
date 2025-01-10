@@ -8,6 +8,9 @@ public class UserUpdatedEvent {
     private User user;
     private List<String> changedFields;
 
+    private UserUpdatedEvent() {
+    }
+
     public UserUpdatedEvent(User user, List<String> changedFields) {
         this.user = user;
         this.changedFields = changedFields;
