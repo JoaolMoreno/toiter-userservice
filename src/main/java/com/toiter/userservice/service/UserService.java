@@ -25,6 +25,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -64,8 +66,7 @@ public class UserService {
                     logger.error("User not found for ID: {}", id);
                     return new IllegalArgumentException("User not found");
                 });
-
-        boolean updated = false;
+        List<String> changedFields = new ArrayList<>();
 
         if (updatedUser.username() != null && !updatedUser.username().isEmpty()) {
             if (updatedUser.username().length() > 255) {
@@ -74,7 +75,7 @@ public class UserService {
             }
             logger.debug("Updating username for user ID {}: {}", id, updatedUser.username());
             user.setUsername(updatedUser.username());
-            updated = true;
+            changedFields.add("username");
         }
 
         if (updatedUser.email() != null && !updatedUser.email().isEmpty()) {
@@ -84,7 +85,7 @@ public class UserService {
             }
             logger.debug("Updating email for user ID {}: {}", id, updatedUser.email());
             user.setEmail(updatedUser.email());
-            updated = true;
+            changedFields.add("email");
         }
 
         if (updatedUser.bio() != null && !updatedUser.bio().isEmpty()) {
@@ -94,13 +95,13 @@ public class UserService {
             }
             logger.debug("Updating bio for user ID {}: {}", id, updatedUser.bio());
             user.setBio(updatedUser.bio());
-            updated = true;
+            changedFields.add("bio");
         }
 
         try {
-            if (updated) {
+            if (!changedFields.isEmpty()) {
                 userRepository.save(user);
-                UserUpdatedEvent event = new UserUpdatedEvent(user);
+                UserUpdatedEvent event = new UserUpdatedEvent(user, changedFields);
                 kafkaProducer.sendUserUpdatedEvent(event);
                 logger.debug("User updated successfully for ID: {}", id);
             }
@@ -122,12 +123,18 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         Long existingImageId = user.getProfileImageId();
+        List<String> changedFields = new ArrayList<>();
         Image image = imageService.updateOrCreateImage(existingImageId, imageFile);
+        if(existingImageId == null) {
+            changedFields.add("profileImageId");
+        }
         user.setProfileImageId(image.getId());
         userRepository.save(user);
 
-        UserUpdatedEvent event = new UserUpdatedEvent(user);
-        kafkaProducer.sendUserUpdatedEvent(event);
+        if(!changedFields.isEmpty()) {
+            UserUpdatedEvent event = new UserUpdatedEvent(user, changedFields);
+            kafkaProducer.sendUserUpdatedEvent(event);
+        }
     }
 
     @Transactional
@@ -140,7 +147,7 @@ public class UserService {
         user.setHeaderImageId(image.getId());
         userRepository.save(user);
 
-        UserUpdatedEvent event = new UserUpdatedEvent(user);
+        UserUpdatedEvent event = new UserUpdatedEvent(user, List.of("headerImageId"));
         kafkaProducer.sendUserUpdatedEvent(event);
     }
 
@@ -266,6 +273,15 @@ public class UserService {
     public String getProfilePictureByUsername(String username) {
         UserPublicData publicData = getPublicUserDataByUsername(username, null);
         Long profileImageId = publicData.getProfileImageId();
+        return getProfilePictureUrl(profileImageId);
+    }
+
+    public String getProfilePictureUrl(Long profileImageId) {
         return profileImageId != null ? serverUrl + "/images/" + profileImageId : null;
+    }
+
+    public void syncUserProfileImage(Long userId, Long profileImageId) {
+        String imageUrl = getProfilePictureUrl(profileImageId);
+        postClientService.updateProfileImage(userId, imageUrl);
     }
 }
