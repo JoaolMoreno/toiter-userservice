@@ -1,5 +1,6 @@
 package com.toiter.userservice.controller;
 
+import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,20 @@ public class InternalUserController {
 
     public InternalUserController(UserService userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<UserPublicData> getUser(
+            @RequestParam String username,
+            @RequestParam Long userId
+    ) {
+        if (username == null && userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        if(username == null) {
+            username = userService.getUsernameByUserId(userId);
+        }
+        return ResponseEntity.ok(userService.getPublicUserDataByUsername(username, null));
     }
 
     @GetMapping("/{username}/id")
