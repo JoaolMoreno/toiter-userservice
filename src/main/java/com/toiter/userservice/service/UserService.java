@@ -151,7 +151,7 @@ public class UserService {
         kafkaProducer.sendUserUpdatedEvent(event);
     }
 
-    public UserPublicData getPublicUserDataByUsername(@NotNull String username, @NotNull @Min(1) Long authenticatedUserId) {
+    public UserPublicData getPublicUserDataByUsername(@NotNull String username, @Min(1) Long authenticatedUserId) {
         logger.info("Fetching public data for username: {}", username);
 
         ValueOperations<String, Long> valueOpsForLong = redisTemplateForLong.opsForValue();
@@ -198,7 +198,7 @@ public class UserService {
         redisTemplateForUserPublicData.expire(publicDataKey, Duration.ofHours(1));
         logger.debug("Fetched public data for ID {}: {}", userId, publicData);
 
-        if (!userId.equals(authenticatedUserId)) {
+        if (!userId.equals(authenticatedUserId) && authenticatedUserId != null) {
             logger.debug("Processing relationship data (isFollowing, isFollowingMe) for user ID: {}", userId);
 
             boolean isFollowing = followRepository.existsByUserIdAndFollowerId(userId, authenticatedUserId);
