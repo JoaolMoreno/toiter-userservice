@@ -82,3 +82,33 @@ FROM usr.users;
 
 GRANT SELECT ON vw_users TO usr;
 GRANT SELECT ON vw_users TO pst;
+
+-- Tabela de Conversas
+CREATE TABLE usr.chats (
+                           id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                           user_id1 BIGINT NOT NULL,
+                           user_id2 BIGINT NOT NULL,
+                           creation_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                           FOREIGN KEY (user_id1) REFERENCES usr.users (id) ON DELETE CASCADE,
+                           FOREIGN KEY (user_id2) REFERENCES usr.users (id) ON DELETE CASCADE,
+                           CONSTRAINT unique_chat_users UNIQUE (user_id1, user_id2),
+                           CONSTRAINT check_user_order CHECK (user_id1 < user_id2)
+);
+
+-- Índices para user_id1 e user_id2
+CREATE INDEX idx_chats_user_id1 ON usr.chats (user_id1);
+CREATE INDEX idx_chats_user_id2 ON usr.chats (user_id2);
+
+-- Tabela de Mensagens
+CREATE TABLE usr.messages (
+                              id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                              chat_id BIGINT NOT NULL,
+                              sender_id BIGINT NOT NULL,
+                              content TEXT NOT NULL,
+                              sent_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                              FOREIGN KEY (chat_id) REFERENCES usr.chats (id) ON DELETE CASCADE,
+                              FOREIGN KEY (sender_id) REFERENCES usr.users (id) ON DELETE CASCADE
+);
+
+-- Índice composto para chat_id e sent_date
+CREATE INDEX idx_messages_chat_id_sent_date ON usr.messages (chat_id, sent_date DESC);
