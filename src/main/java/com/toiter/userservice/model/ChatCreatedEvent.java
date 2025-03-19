@@ -5,6 +5,9 @@ import com.toiter.userservice.entity.Chat;
 public class ChatCreatedEvent {
     private Chat chat;
 
+    public ChatCreatedEvent() {
+    }
+
     public ChatCreatedEvent(Chat chat) {
         this.chat = chat;
     }
