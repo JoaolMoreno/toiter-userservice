@@ -55,7 +55,7 @@ public class ChatController {
     @PostMapping("/{chatId}/message")
     public ResponseEntity<Message> sendMessage(
             @PathVariable Long chatId,
-            @RequestBody @NotNull String content,
+            @NotNull @Size(min = 1, max = 10000) String content,
             Authentication authentication) {
         Long senderId = authService.getUserIdFromAuthentication(authentication);
 
