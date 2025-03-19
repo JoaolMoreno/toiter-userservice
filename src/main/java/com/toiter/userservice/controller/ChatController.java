@@ -7,9 +7,13 @@ import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.ChatService;
 import com.toiter.userservice.service.UserService;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.handler.annotation.DestinationVariable;
+import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,6 +28,7 @@ public class ChatController {
     private final UserService userService;
     private final AuthService authService;
 
+    @Autowired
     public ChatController(ChatService chatService, UserService userService, AuthService authService) {
         this.chatService = chatService;
         this.userService = userService;
@@ -56,6 +61,16 @@ public class ChatController {
 
         Message message = chatService.sendMessage(chatId, senderId, content);
         return new ResponseEntity<>(message, HttpStatus.CREATED);
+    }
+
+    @MessageMapping("/chat/{chatId}/message")
+    public void sendMessageWs(
+            @DestinationVariable Long chatId,
+            @NotNull @Size(min = 1, max = 10000) String content,
+            Authentication authentication) {
+        Long senderId = authService.getUserIdFromAuthentication(authentication);
+
+        chatService.sendMessage(chatId, senderId, content);
     }
 
     /** Recuperar mensagens de um chat, paginadas */
