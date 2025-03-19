@@ -41,7 +41,7 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/images/**",
                                 "/internal/**",
-                                "/ws/**"
+                                "/chat/**"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )
