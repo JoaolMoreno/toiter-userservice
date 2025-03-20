@@ -265,6 +265,12 @@ public class UserService {
         return userRepository.findUsernamesByQuery(usernameQuery, pageable);
     }
 
+    public Page<String> getFollowingUsers(Long userId, String username, int page, int size) {
+        String usernameQuery = username.toLowerCase();
+        Pageable pageable = PageRequest.of(page, size);
+        return userRepository.findFollowingUsernamesByQuery(userId, usernameQuery, pageable);
+    }
+
     public String getUsernameByUserId(Long userId) {
         return userRepository.findUsernameById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
