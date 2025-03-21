@@ -98,6 +98,7 @@ public class ChatService {
     private MessageData convertToMessageData(Message message) {
         return new MessageData(
                 message.getId(),
+                message.getChat().getId(),
                 message.getContent(),
                 message.getSentDate()
         );
