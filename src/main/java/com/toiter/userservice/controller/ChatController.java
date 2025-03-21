@@ -1,8 +1,8 @@
 package com.toiter.userservice.controller;
 
 import com.toiter.userservice.entity.Chat;
-import com.toiter.userservice.entity.Message;
 import com.toiter.userservice.model.ChatData;
+import com.toiter.userservice.model.MessageData;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.ChatService;
 import com.toiter.userservice.service.UserService;
@@ -53,13 +53,13 @@ public class ChatController {
 
     /** Enviar uma mensagem em um chat */
     @PostMapping("/{chatId}/message")
-    public ResponseEntity<Message> sendMessage(
+    public ResponseEntity<MessageData> sendMessage(
             @PathVariable Long chatId,
             @NotNull @Size(min = 1, max = 10000) String content,
             Authentication authentication) {
         Long senderId = authService.getUserIdFromAuthentication(authentication);
 
-        Message message = chatService.sendMessage(chatId, senderId, content);
+        MessageData message = chatService.sendMessage(chatId, senderId, content);
         return new ResponseEntity<>(message, HttpStatus.CREATED);
     }
 
@@ -75,7 +75,7 @@ public class ChatController {
 
     /** Recuperar mensagens de um chat, paginadas */
     @GetMapping("/{chatId}/messages")
-    public ResponseEntity<Page<Message>> getMessages(
+    public ResponseEntity<Page<MessageData>> getMessages(
             @PathVariable Long chatId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
@@ -90,7 +90,7 @@ public class ChatController {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
 
-        Page<Message> messages = chatService.getMessages(chatId, page, size);
+        Page<MessageData> messages = chatService.getMessages(chatId, page, size);
         return new ResponseEntity<>(messages, HttpStatus.OK);
     }
 

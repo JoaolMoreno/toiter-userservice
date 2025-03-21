@@ -4,21 +4,20 @@ import com.toiter.userservice.entity.Chat;
 import com.toiter.userservice.model.ChatCreatedEvent;
 import com.toiter.userservice.model.ChatData;
 import com.toiter.userservice.entity.Message;
-import com.toiter.userservice.entity.User;
+import com.toiter.userservice.model.MessageData;
 import com.toiter.userservice.model.MessageSentEvent;
 import com.toiter.userservice.producer.KafkaProducer;
 import com.toiter.userservice.repository.ChatRepository;
 import com.toiter.userservice.repository.MessageRepository;
 import com.toiter.userservice.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -56,7 +55,7 @@ public class ChatService {
         return chat;
     }
 
-    public Message sendMessage(Long chatId, Long senderId, String content) {
+    public MessageData sendMessage(Long chatId, Long senderId, String content) {
         Chat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new NoSuchElementException("Chat not found"));
 
@@ -77,17 +76,31 @@ public class ChatService {
 
         kafkaProducer.sendMessageSentEvent(new MessageSentEvent(message));
 
-        return message;
+        return convertToMessageData(message);
     }
 
-    public Page<Message> getMessages(Long chatId, int page, int size) {
+    public Page<MessageData> getMessages(Long chatId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("sentDate").descending());
-        return messageRepository.findByChatIdOrderBySentDateDesc(chatId, pageable);
+        Page<Message> messages = messageRepository.findByChatIdOrderBySentDateDesc(chatId, pageable);
+
+        List<MessageData> messageDataList = messages.getContent().stream()
+                .map(this::convertToMessageData)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(messageDataList, pageable, messages.getTotalElements());
     }
 
     public Page<ChatData> getChatsForUser(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return chatRepository.findChatDataByUserId(userId, pageable);
+    }
+
+    private MessageData convertToMessageData(Message message) {
+        return new MessageData(
+                message.getId(),
+                message.getContent(),
+                message.getSentDate()
+        );
     }
 
     public Chat getChatById(Long chatId, Long userId) {
