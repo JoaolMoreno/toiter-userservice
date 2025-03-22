@@ -5,14 +5,16 @@ import java.time.LocalDateTime;
 public class MessageData {
     private Long id;
     private Long chatId;
+    private String sender;
     private String message;
     private LocalDateTime sentDate;
 
     public MessageData() {}
 
-    public MessageData(Long id, Long chatId, String message, LocalDateTime sentDate) {
+    public MessageData(Long id, Long chatId, String sender, String message, LocalDateTime sentDate) {
         this.id = id;
         this.chatId = chatId;
+        this.sender = sender;
         this.message = message;
         this.sentDate = sentDate;
     }
@@ -46,4 +48,12 @@ public class MessageData {
     }
 
     public void setChatId(Long chatId) {}
+
+    public String getSender() {
+        return sender;
+    }
+
+    public void setSender(String sender) {
+        this.sender = sender;
+    }
 }

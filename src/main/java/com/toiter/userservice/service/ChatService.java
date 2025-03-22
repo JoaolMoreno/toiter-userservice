@@ -14,10 +14,8 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
@@ -26,12 +24,14 @@ public class ChatService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final KafkaProducer kafkaProducer;
+    private final UserService userService;
 
-    public ChatService(ChatRepository chatRepository, MessageRepository messageRepository, UserRepository userRepository, KafkaProducer kafkaProducer) {
+    public ChatService(ChatRepository chatRepository, MessageRepository messageRepository, UserRepository userRepository, KafkaProducer kafkaProducer, UserService userService) {
         this.chatRepository = chatRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.kafkaProducer = kafkaProducer;
+        this.userService = userService;
     }
 
     public Chat createChat(Long user1Id, Long user2Id) {
@@ -76,18 +76,16 @@ public class ChatService {
 
         kafkaProducer.sendMessageSentEvent(new MessageSentEvent(message));
 
-        return convertToMessageData(message);
+        Long recipientId = chat.getUserId1().equals(senderId) ? chat.getUserId2() : chat.getUserId1();
+        String recipientUsername = userService.getUsernameByUserId(recipientId);
+
+        return convertToMessageData(message, recipientUsername);
     }
 
     public Page<MessageData> getMessages(Long chatId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("sentDate").descending());
-        Page<Message> messages = messageRepository.findByChatIdOrderBySentDateDesc(chatId, pageable);
 
-        List<MessageData> messageDataList = messages.getContent().stream()
-                .map(this::convertToMessageData)
-                .collect(Collectors.toList());
-
-        return new PageImpl<>(messageDataList, pageable, messages.getTotalElements());
+        return messageRepository.findByChatId(chatId, pageable);
     }
 
     public Page<ChatData> getChatsForUser(Long userId, int page, int size) {
@@ -95,10 +93,11 @@ public class ChatService {
         return chatRepository.findChatDataByUserId(userId, pageable);
     }
 
-    private MessageData convertToMessageData(Message message) {
+    private MessageData convertToMessageData(Message message, String recipientUsername) {
         return new MessageData(
                 message.getId(),
                 message.getChat().getId(),
+                recipientUsername,
                 message.getContent(),
                 message.getSentDate()
         );

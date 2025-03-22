@@ -4,6 +4,7 @@ import com.toiter.userservice.entity.Chat;
 import com.toiter.userservice.model.ChatCreatedEvent;
 import com.toiter.userservice.model.MessageData;
 import com.toiter.userservice.model.MessageSentEvent;
+import com.toiter.userservice.service.UserService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,9 +16,11 @@ import org.springframework.stereotype.Service;
 public class ChatEventConsumer {
     private static final Logger logger = LoggerFactory.getLogger(ChatEventConsumer.class);
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserService userService;
 
-    public ChatEventConsumer(SimpMessagingTemplate messagingTemplate) {
+    public ChatEventConsumer(SimpMessagingTemplate messagingTemplate, UserService userService) {
         this.messagingTemplate = messagingTemplate;
+        this.userService = userService;
     }
 
     @KafkaListener(topics = "chat-events-topic", groupId = "chat-event-consumer")
@@ -41,12 +44,14 @@ public class ChatEventConsumer {
         Chat chat = event.getMessage().getChat();
         Long senderId = event.getMessage().getSenderId();
         Long recipientId = chat.getUserId1().equals(senderId) ? chat.getUserId2() : chat.getUserId1();
+        String senderUsername = userService.getUsernameByUserId(senderId);
 
         // Envia a mensagem apenas para o recipientId em um destino fixo por usuário
         String destination = "/queue/messages";
         MessageData messageData = new MessageData(
                 chat.getId(),
                 event.getMessage().getChat().getId(),
+                senderUsername,
                 event.getMessage().getContent(),
                 event.getMessage().getSentDate()
         );
