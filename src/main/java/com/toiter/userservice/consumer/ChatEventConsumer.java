@@ -46,7 +46,7 @@ public class ChatEventConsumer {
         Long recipientId = chat.getUserId1().equals(senderId) ? chat.getUserId2() : chat.getUserId1();
         String senderUsername = userService.getUsernameByUserId(senderId);
 
-        // Envia a mensagem apenas para o recipientId em um destino fixo por usuário
+        // Envia a mensagem em um destino fixo por usuário
         String destination = "/queue/messages";
         MessageData messageData = new MessageData(
                 chat.getId(),
@@ -56,5 +56,6 @@ public class ChatEventConsumer {
                 event.getMessage().getSentDate()
         );
         messagingTemplate.convertAndSendToUser(recipientId.toString(), destination, messageData);
+        messagingTemplate.convertAndSendToUser(senderId.toString(), destination, messageData);
     }
 }
