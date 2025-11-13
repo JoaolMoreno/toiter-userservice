@@ -6,6 +6,9 @@ WORKDIR /app
 # Copia os arquivos do projeto para o contêiner
 COPY . .
 
+# Torna o script gradlew executável
+RUN chmod +x gradlew
+
 # Executa o comando de build do Gradle
 RUN ./gradlew clean build
 
