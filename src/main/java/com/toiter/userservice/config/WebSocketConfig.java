@@ -41,7 +41,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/chat")
-                .setAllowedOrigins("https://toiter.lpmrn.com", "http://localhost")
+                .setAllowedOrigins("https://toiter.joaoplmoreno.com", "http://localhost")
                 .withSockJS();
     }
 
