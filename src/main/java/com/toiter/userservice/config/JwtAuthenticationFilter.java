@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         // Validação para /internal/** com token compartilhado
-        if (path.startsWith("/internal/")) {
+        if (path.startsWith("/internal/") || path.startsWith("/api/internal/")) {
             logger.debug("Validando token compartilhado para rota /internal/**");
             if (authHeader == null || !authHeader.equals("Bearer " + sharedKey)) {
                 logger.warn("Acesso não autorizado para /internal/**");
