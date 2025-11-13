@@ -22,4 +22,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.username FROM User u WHERE u.id = :userId")
     Optional<String> findUsernameById(Long userId);
+
+    @Query("SELECT u.username FROM User u JOIN Follow f ON u.id = f.userId WHERE f.followerId = :userId AND lower(u.username) like %:username%")
+    Page<String> findFollowingUsernamesByQuery(Long userId, String username, Pageable pageable);
 }

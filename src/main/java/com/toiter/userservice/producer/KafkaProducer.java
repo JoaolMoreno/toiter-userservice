@@ -1,7 +1,9 @@
 package com.toiter.userservice.producer;
 
+import com.toiter.userservice.model.ChatCreatedEvent;
 import com.toiter.userservice.model.FollowCreatedEvent;
 import com.toiter.userservice.model.FollowDeletedEvent;
+import com.toiter.userservice.model.MessageSentEvent;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +33,20 @@ public class KafkaProducer {
     public void sendUserUpdatedEvent(Object event) {
         kafkaTemplate.executeInTransaction(operations -> {
             operations.send("user-updated-topic", event);
+            return true;
+        });
+    }
+
+    public void sendChatCreatedEvent(ChatCreatedEvent event) {
+        kafkaTemplate.executeInTransaction(operations -> {
+            operations.send("chat-events-topic", event);
+            return true;
+        });
+    }
+
+    public void sendMessageSentEvent(MessageSentEvent event) {
+        kafkaTemplate.executeInTransaction(operations -> {
+            operations.send("chat-events-topic", event);
             return true;
         });
     }
