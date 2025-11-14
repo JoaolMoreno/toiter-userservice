@@ -312,6 +312,11 @@ public class UserService {
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
+    public User getUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    }
+
     public Long getUserIdByUsername(String username) {
         return userRepository.findUserIdByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
