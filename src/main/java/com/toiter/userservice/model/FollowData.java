@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 public class FollowData {
     private String username;
+    private String displayName;
     private String profileImageUrl;
     private LocalDateTime followDate;
     private Long profileImageId;
@@ -11,27 +12,31 @@ public class FollowData {
     public FollowData() {
     }
 
-    public FollowData(String username, LocalDateTime followDate, Long profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, Long profileImageId) {
         this.username = username;
+        this.displayName = displayName;
         this.followDate = followDate;
         this.profileImageId = profileImageId;
     }
 
     // Overloads to match potential primitive/wrapper int cases from JPQL CASE
-    public FollowData(String username, LocalDateTime followDate, Number profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, Number profileImageId) {
         this.username = username;
+        this.displayName = displayName;
         this.followDate = followDate;
         this.profileImageId = profileImageId != null ? profileImageId.longValue() : null;
     }
 
-    public FollowData(String username, LocalDateTime followDate, Integer profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, Integer profileImageId) {
         this.username = username;
+        this.displayName = displayName;
         this.followDate = followDate;
         this.profileImageId = profileImageId != null ? profileImageId.longValue() : null;
     }
 
-    public FollowData(String username, LocalDateTime followDate, int profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, int profileImageId) {
         this.username = username;
+        this.displayName = displayName;
         this.followDate = followDate;
         this.profileImageId = Long.valueOf(profileImageId);
     }
@@ -42,6 +47,14 @@ public class FollowData {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public String getProfileImageUrl() {

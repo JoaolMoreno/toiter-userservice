@@ -19,21 +19,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u.id FROM User u WHERE u.username = :username")
     Optional<Long> findUserIdByUsername(String username);
 
-    @Query("SELECT u.username FROM User u WHERE lower(u.username) like %:username%")
+    @Query("SELECT u.username FROM User u WHERE lower(u.username) like %:username% OR lower(u.displayName) like %:username%")
     Page<String> findUsernamesByQuery(String username, Pageable pageable);
 
     @Query("SELECT u.username FROM User u WHERE u.id = :userId")
     Optional<String> findUsernameById(Long userId);
 
-    @Query("SELECT u.username FROM User u JOIN Follow f ON u.id = f.userId WHERE f.followerId = :userId AND lower(u.username) like %:username%")
+    @Query("SELECT u.username FROM User u JOIN Follow f ON u.id = f.userId WHERE f.followerId = :userId AND (lower(u.username) like %:username% OR lower(u.displayName) like %:username%)")
     Page<String> findFollowingUsernamesByQuery(Long userId, String username, Pageable pageable);
 
     @Query("SELECT NEW com.toiter.userservice.model.FollowData(" +
             "u.username, " +
+            "u.displayName, " +
             "f.followDate, " +
             "u.profileImageId) " +
             "FROM User u " +
             "JOIN Follow f ON u.id = f.userId " +
-            "WHERE f.followerId = :userId AND lower(u.username) like %:username%")
+            "WHERE f.followerId = :userId AND (lower(u.username) like %:username% OR lower(u.displayName) like %:username%)")
     Page<FollowData> findFollowingDataByQuery(@Param("userId") Long userId, @Param("username") String username, Pageable pageable);
 }

@@ -22,6 +22,7 @@ CREATE INDEX idx_images_id ON usr.images (id);
 CREATE TABLE usr.users (
                            id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                            username VARCHAR(255) NOT NULL,
+                           display_name VARCHAR(30) NOT NULL,
                            email VARCHAR(255) UNIQUE NOT NULL,
                            password VARCHAR(255) NOT NULL,
                            bio TEXT,
@@ -41,6 +42,9 @@ CREATE INDEX idx_users_email ON usr.users (email);
 
 -- Index for username lookup
 CREATE INDEX idx_users_username ON usr.users (username);
+
+-- Index for display_name lookup
+CREATE INDEX idx_users_display_name ON usr.users (display_name);
 
 -- Index for id lookup
 CREATE INDEX idx_users_id ON usr.users (id);
@@ -73,6 +77,7 @@ CREATE VIEW vw_users AS
 SELECT
     id,
     username,
+    display_name,
     email,
     bio,
     profile_image_id,

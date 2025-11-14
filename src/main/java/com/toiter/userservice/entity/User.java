@@ -19,6 +19,11 @@ public class User {
     @Size(max = 255, message = "Username must be less than 255 characters")
     private String username;
 
+    @NotBlank(message = "Display name is required")
+    @Size(min = 4, max = 30, message = "Display name must be between 4 and 30 characters")
+    @Column(name = "display_name")
+    private String displayName;
+
     @NotBlank(message = "Email is required")
     @Email(message = "Email must be valid")
     private String email;
@@ -52,6 +57,14 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public String getEmail() {

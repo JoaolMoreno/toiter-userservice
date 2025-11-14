@@ -45,6 +45,7 @@ public class UserUpdatedConsumer {
 
         UserPublicData publicData = new UserPublicData(
                 updatedUser.getUsername(),
+                updatedUser.getDisplayName(),
                 updatedUser.getBio(),
                 updatedUser.getProfileImageId(),
                 updatedUser.getHeaderImageId(),

@@ -3,6 +3,8 @@ package com.toiter.userservice.model;
 public class UserPublicData {
     private String username;
 
+    private String displayName;
+
     private String bio;
 
     private Long profileImageId;
@@ -22,8 +24,9 @@ public class UserPublicData {
     public UserPublicData() {
     }
 
-    public UserPublicData(String username, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount, Boolean isFollowing, Boolean isFollowingMe, Integer postsCount) {
+    public UserPublicData(String username, String displayName, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount, Boolean isFollowing, Boolean isFollowingMe, Integer postsCount) {
         this.username = username;
+        this.displayName = displayName;
         this.bio = bio;
         this.profileImageId = profileImageId;
         this.headerImageId = headerImageId;
@@ -34,8 +37,9 @@ public class UserPublicData {
         this.postsCount = postsCount;
     }
 
-    public UserPublicData(String username, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount) {
+    public UserPublicData(String username, String displayName, String bio, Long profileImageId, Long headerImageId, Integer followersCount, Integer followingCount) {
         this.username = username;
+        this.displayName = displayName;
         this.bio = bio;
         this.profileImageId = profileImageId;
         this.headerImageId = headerImageId;
@@ -65,6 +69,14 @@ public class UserPublicData {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public String getDisplayName() {
+        return displayName;
+    }
+
+    public void setDisplayName(String displayName) {
+        this.displayName = displayName;
     }
 
     public String getBio() {

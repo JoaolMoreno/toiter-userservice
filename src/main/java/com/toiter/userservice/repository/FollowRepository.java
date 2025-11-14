@@ -21,6 +21,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     @Query("SELECT NEW com.toiter.userservice.model.FollowData(" +
             "u.username, " +
+            "u.displayName, " +
             "f.followDate, " +
             "u.profileImageId) " +
             "FROM Follow f " +
@@ -30,6 +31,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
 
     @Query("SELECT NEW com.toiter.userservice.model.FollowData(" +
             "u.username, " +
+            "u.displayName, " +
             "f.followDate, " +
             "u.profileImageId) " +
             "FROM Follow f " +

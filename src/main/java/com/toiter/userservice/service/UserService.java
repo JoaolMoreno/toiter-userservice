@@ -78,6 +78,21 @@ public class UserService {
             changedFields.add("username");
         }
 
+        if (updatedUser.displayName() != null && !updatedUser.displayName().isEmpty()) {
+            String trimmedDisplayName = updatedUser.displayName().trim();
+            if (trimmedDisplayName.length() < 4) {
+                logger.error("Display name is too short for user ID {}: {}", id, trimmedDisplayName);
+                throw new IllegalArgumentException("Display name must be at least 4 characters");
+            }
+            if (trimmedDisplayName.length() > 30) {
+                logger.error("Display name exceeds 30 characters for user ID {}: {}", id, trimmedDisplayName);
+                throw new IllegalArgumentException("Display name cannot exceed 30 characters");
+            }
+            logger.debug("Updating display name for user ID {}: {}", id, trimmedDisplayName);
+            user.setDisplayName(trimmedDisplayName);
+            changedFields.add("displayName");
+        }
+
         if (updatedUser.email() != null && !updatedUser.email().isEmpty()) {
             if (!updatedUser.email().matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,6}$")) {
                 logger.error("Invalid email format: {}", updatedUser.email());
@@ -184,6 +199,7 @@ public class UserService {
 
             publicData = new UserPublicData(
                     userProjection.getUsername(),
+                    userProjection.getDisplayName(),
                     userProjection.getBio(),
                     userProjection.getProfileImageId(),
                     userProjection.getHeaderImageId(),
@@ -208,6 +224,7 @@ public class UserService {
 
             return new UserPublicData(
                     publicData.getUsername(),
+                    publicData.getDisplayName(),
                     publicData.getBio(),
                     publicData.getProfileImageId(),
                     publicData.getHeaderImageId(),
@@ -282,6 +299,7 @@ public class UserService {
 
         User user = new User();
         user.setUsername(userRequest.getUsername());
+        user.setDisplayName(userRequest.getUsername());
         user.setEmail(userRequest.getEmail());
         user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         user.setBio(userRequest.getBio());
