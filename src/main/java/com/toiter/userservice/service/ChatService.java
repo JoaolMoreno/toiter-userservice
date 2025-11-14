@@ -90,7 +90,12 @@ public class ChatService {
 
     public Page<ChatData> getChatsForUser(Long userId, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return chatRepository.findChatDataByUserId(userId, pageable);
+        Page<ChatData> basePage = chatRepository.findChatDataByUserId(userId, pageable);
+        return basePage.map(cd -> {
+            String imageUrl = userService.getProfilePictureUrl(cd.getReceiverProfileImageId());
+            cd.setReceiverProfileImageUrl(imageUrl);
+            return cd;
+        });
     }
 
     private MessageData convertToMessageData(Message message, String recipientUsername) {

@@ -1,6 +1,7 @@
 package com.toiter.userservice.controller;
 
 import com.toiter.userservice.entity.Follow;
+import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.service.FollowService;
 import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.UserService;
@@ -38,13 +39,13 @@ public class FollowController {
             security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de seguidores retornada com sucesso",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Follow.class))),
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FollowData.class))),
                     @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
             }
     )
-    public List<Follow> getFollowers(@PathVariable @NotNull String username) {
+    public List<FollowData> getFollowers(@PathVariable @NotNull String username) {
         Long userId = userService.getUserByUsername(username).getId();
-        return followService.getFollowers(userId);
+        return followService.getFollowersData(userId);
     }
 
     @GetMapping("/{username}/followings")
@@ -54,13 +55,13 @@ public class FollowController {
             security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Lista de seguidos retornada com sucesso",
-                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = Follow.class))),
+                            content = @Content(mediaType = "application/json", schema = @Schema(implementation = FollowData.class))),
                     @ApiResponse(responseCode = "404", description = "Usuário não encontrado")
             }
     )
-    public List<Follow> getFollowings(@PathVariable @NotNull String username) {
+    public List<FollowData> getFollowings(@PathVariable @NotNull String username) {
         Long userId = userService.getUserByUsername(username).getId();
-        return followService.getFollowings(userId);
+        return followService.getFollowingsData(userId);
     }
 
     @PostMapping("/{username}/follow")

@@ -1,11 +1,13 @@
 package com.toiter.userservice.repository;
 
 import com.toiter.userservice.entity.User;
+import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.model.UserPublicProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
 
@@ -25,4 +27,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u.username FROM User u JOIN Follow f ON u.id = f.userId WHERE f.followerId = :userId AND lower(u.username) like %:username%")
     Page<String> findFollowingUsernamesByQuery(Long userId, String username, Pageable pageable);
+
+    @Query("SELECT NEW com.toiter.userservice.model.FollowData(" +
+            "u.username, " +
+            "f.followDate, " +
+            "u.profileImageId) " +
+            "FROM User u " +
+            "JOIN Follow f ON u.id = f.userId " +
+            "WHERE f.followerId = :userId AND lower(u.username) like %:username%")
+    Page<FollowData> findFollowingDataByQuery(@Param("userId") Long userId, @Param("username") String username, Pageable pageable);
 }

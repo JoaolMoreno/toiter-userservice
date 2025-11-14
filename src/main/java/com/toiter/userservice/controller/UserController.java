@@ -1,5 +1,6 @@
 package com.toiter.userservice.controller;
 
+import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.model.UpdatedUser;
 import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.service.AuthService;
@@ -180,28 +181,23 @@ public class UserController {
     @GetMapping("/following")
     @Operation(
             summary = "Listar usuários seguidos pelo usuário autenticado",
-            description = "Retorna uma lista paginada de nomes de usuários que o usuário autenticado segue, com filtro por nome de usuário",
+            description = "Retorna uma lista paginada de usuários que o usuário autenticado segue, com filtro por nome de usuário",
             security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Lista de usuários retornada com sucesso"),
+                    @ApiResponse(responseCode = "200", description = "Lista de usuários retornada com sucesso",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = FollowData.class)
+                            )),
                     @ApiResponse(responseCode = "400", description = "Parâmetros de busca inválidos")
             }
     )
-    public Map<String, Object> getFollowingUsers(
+    public Page<FollowData> getFollowingUsers(
             @RequestParam @Parameter(description = "Parte do nome de usuário para busca") String username,
             @RequestParam @Parameter(description = "Número da página") int page,
             @RequestParam @Parameter(description = "Tamanho da página") int size,
             Authentication authentication) {
         Long userId = authService.getUserIdFromAuthentication(authentication);
-        Page<String> users = userService.getFollowingUsers(userId, username, page, size);
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("content", users.getContent());
-        response.put("page", users.getNumber());
-        response.put("size", users.getSize());
-        response.put("totalElements", users.getTotalElements());
-        response.put("totalPages", users.getTotalPages());
-
-        return response;
+        return userService.getFollowingUsersData(userId, username, page, size);
     }
 }

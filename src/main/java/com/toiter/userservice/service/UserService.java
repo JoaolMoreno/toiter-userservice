@@ -271,6 +271,17 @@ public class UserService {
         return userRepository.findFollowingUsernamesByQuery(userId, usernameQuery, pageable);
     }
 
+    public Page<FollowData> getFollowingUsersData(Long userId, String username, int page, int size) {
+        String usernameQuery = username.toLowerCase();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<FollowData> followingPage = userRepository.findFollowingDataByQuery(userId, usernameQuery, pageable);
+        return followingPage.map(fd -> {
+            String imageUrl = getProfilePictureUrl(fd.getProfileImageId());
+            fd.setProfileImageUrl(imageUrl);
+            return fd;
+        });
+    }
+
     public String getUsernameByUserId(Long userId) {
         return userRepository.findUsernameById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

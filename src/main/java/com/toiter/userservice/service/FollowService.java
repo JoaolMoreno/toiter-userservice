@@ -2,6 +2,7 @@ package com.toiter.userservice.service;
 
 import com.toiter.userservice.entity.Follow;
 import com.toiter.userservice.model.FollowCreatedEvent;
+import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.model.FollowDeletedEvent;
 import com.toiter.userservice.producer.KafkaProducer;
 import com.toiter.userservice.repository.FollowRepository;
@@ -22,11 +23,13 @@ public class FollowService {
 
     private final FollowRepository followRepository;
     private final KafkaProducer kafkaProducer;
+    private final UserService userService;
     private static final Logger logger = LoggerFactory.getLogger(FollowService.class);
 
-    public FollowService(FollowRepository followRepository, KafkaProducer kafkaProducer) {
+    public FollowService(FollowRepository followRepository, KafkaProducer kafkaProducer, UserService userService) {
         this.followRepository = followRepository;
         this.kafkaProducer = kafkaProducer;
+        this.userService = userService;
     }
 
     public List<Follow> getFollowers(Long userId) {
@@ -35,6 +38,26 @@ public class FollowService {
 
     public List<Follow> getFollowings(Long followerId) {
         return followRepository.findByFollowerId(followerId);
+    }
+
+    public List<FollowData> getFollowersData(Long userId) {
+        List<FollowData> followers = followRepository.findFollowerDataByUserId(userId);
+        return followers.stream()
+                .peek(fd -> {
+                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageId());
+                    fd.setProfileImageUrl(imageUrl);
+                })
+                .toList();
+    }
+
+    public List<FollowData> getFollowingsData(Long followerId) {
+        List<FollowData> followings = followRepository.findFollowingDataByFollowerId(followerId);
+        return followings.stream()
+                .peek(fd -> {
+                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageId());
+                    fd.setProfileImageUrl(imageUrl);
+                })
+                .toList();
     }
 
     @Transactional
