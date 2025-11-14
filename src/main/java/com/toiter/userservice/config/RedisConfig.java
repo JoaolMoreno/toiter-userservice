@@ -1,5 +1,8 @@
 package com.toiter.userservice.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.toiter.userservice.model.UserPublicData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -64,7 +67,13 @@ public class RedisConfig {
         RedisTemplate<String, com.toiter.userservice.entity.User> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
-        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+
+        // support Java 8 date/time types
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer(objectMapper));
         return template;
     }
 
