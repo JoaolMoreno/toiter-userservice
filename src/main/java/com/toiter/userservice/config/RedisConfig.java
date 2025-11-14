@@ -53,6 +53,21 @@ public class RedisConfig {
         return template;
     }
 
+    /**
+     * Configura um RedisTemplate para armazenar valores do tipo User (entidade completa).
+     *
+     * @param connectionFactory a fábrica de conexões Redis
+     * @return um RedisTemplate configurado para chaves do tipo String e valores do tipo User
+     */
+    @Bean
+    public RedisTemplate<String, com.toiter.userservice.entity.User> redisTemplateForUser(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, com.toiter.userservice.entity.User> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new GenericJackson2JsonRedisSerializer());
+        return template;
+    }
+
     @Bean
     public RedisConnectionFactory redisConnectionFactory() {
         RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration(redisHost, redisPort);

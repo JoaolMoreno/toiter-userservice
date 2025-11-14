@@ -41,12 +41,14 @@ public class UserService {
     private final ImageService imageService;
     private final RedisTemplate<String, Long> redisTemplateForLong;
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
+    private final RedisTemplate<String, User> redisTemplateForUser;
     private final KafkaProducer kafkaProducer;
     private static final String USERNAME_TO_ID_KEY_PREFIX = "user:username:";
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
+    private static final String USER_BY_ID_KEY_PREFIX = "user:id:";
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, KafkaProducer kafkaProducer) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, RedisTemplate<String, User> redisTemplateForUser, KafkaProducer kafkaProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository;
@@ -54,6 +56,7 @@ public class UserService {
         this.imageService = imageService;
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
+        this.redisTemplateForUser = redisTemplateForUser;
         this.kafkaProducer = kafkaProducer;
     }
 
@@ -313,13 +316,46 @@ public class UserService {
     }
 
     public User getUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        logger.debug("Fetching user by ID: {}", userId);
+
+        ValueOperations<String, User> valueOps = redisTemplateForUser.opsForValue();
+        String userKey = USER_BY_ID_KEY_PREFIX + userId;
+        User user = valueOps.get(userKey);
+
+        if (user == null) {
+            logger.debug("User not found in cache for ID: {}. Fetching from database.", userId);
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            valueOps.set(userKey, user);
+            redisTemplateForUser.expire(userKey, Duration.ofHours(1));
+        } else {
+            logger.debug("User found in cache for ID: {}", userId);
+            redisTemplateForUser.expire(userKey, Duration.ofHours(1));
+        }
+
+        return user;
     }
 
     public Long getUserIdByUsername(String username) {
-        return userRepository.findUserIdByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+        logger.debug("Fetching user ID by username: {}", username);
+
+        ValueOperations<String, Long> valueOps = redisTemplateForLong.opsForValue();
+        String userIdKey = USERNAME_TO_ID_KEY_PREFIX + username;
+        Number rawValue = valueOps.get(userIdKey);
+        Long userId = rawValue != null ? rawValue.longValue() : null;
+
+        if (userId == null) {
+            logger.debug("User ID not found in cache for username: {}. Fetching from database.", username);
+            userId = userRepository.findUserIdByUsername(username)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            valueOps.set(userIdKey, userId);
+            redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
+        } else {
+            logger.debug("User ID found in cache for username: {}", username);
+            redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
+        }
+
+        return userId;
     }
 
     public Page<String> getExistingUsers(String username, int page, int size) {

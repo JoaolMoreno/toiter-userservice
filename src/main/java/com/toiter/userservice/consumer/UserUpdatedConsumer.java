@@ -16,17 +16,21 @@ public class UserUpdatedConsumer {
 
     private final RedisTemplate<String, Long> redisTemplateForLong;
     private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
+    private final RedisTemplate<String, User> redisTemplateForUser;
     private final FollowRepository followRepository;
     private static final String USERNAME_TO_ID_KEY_PREFIX = "user:username:";
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
+    private static final String USER_BY_ID_KEY_PREFIX = "user:id:";
     private static final Logger logger = LoggerFactory.getLogger(UserUpdatedConsumer.class);
     private final UserService userService;
 
     public UserUpdatedConsumer(RedisTemplate<String, Long> redisTemplateForLong,
                                RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData,
+                               RedisTemplate<String, User> redisTemplateForUser,
                                FollowRepository followRepository, UserService userService) {
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
+        this.redisTemplateForUser = redisTemplateForUser;
         this.followRepository = followRepository;
         this.userService = userService;
     }
@@ -37,10 +41,17 @@ public class UserUpdatedConsumer {
         Long userId = updatedUser.getId();
         ValueOperations<String, Long> valueOpsForLong = redisTemplateForLong.opsForValue();
         ValueOperations<String, UserPublicData> valueOpsForPublicData = redisTemplateForUserPublicData.opsForValue();
+        ValueOperations<String, User> valueOpsForUser = redisTemplateForUser.opsForValue();
 
+        // Update username to ID cache
         String usernameKey = USERNAME_TO_ID_KEY_PREFIX + updatedUser.getUsername();
         valueOpsForLong.set(usernameKey, userId);
 
+        // Update user by ID cache
+        String userByIdKey = USER_BY_ID_KEY_PREFIX + userId;
+        valueOpsForUser.set(userByIdKey, updatedUser);
+
+        // Update public data cache
         String publicDataKey = USER_PUBLIC_DATA_KEY_PREFIX + userId;
 
         UserPublicData publicData = new UserPublicData(
@@ -56,6 +67,6 @@ public class UserUpdatedConsumer {
         valueOpsForPublicData.set(publicDataKey, publicData);
         userService.syncUserProfileImage(userId, updatedUser.getProfileImageId());
 
-        logger.info("Updated Redis for user ID: {}, username: {}", userId, updatedUser.getUsername());
+        logger.info("Updated Redis cache for user ID: {}, username: {} (including User entity cache)", userId, updatedUser.getUsername());
     }
 }
