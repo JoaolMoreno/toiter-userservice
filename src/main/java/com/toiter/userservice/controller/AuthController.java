@@ -45,7 +45,7 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "Dados do usuário inválidos")
     })
     @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody UserRequest userRequest) {
+    public ResponseEntity<String> register(@RequestBody UserRequest userRequest) {
         userService.registerUser(userRequest);
         return ResponseEntity.ok("Usuário registrado com sucesso");
     }

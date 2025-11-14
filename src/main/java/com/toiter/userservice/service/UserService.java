@@ -225,9 +225,49 @@ public class UserService {
     public void registerUser(@NotNull UserRequest userRequest) {
         logger.info("Registrando usuário {}", userRequest.getUsername());
 
+        // Validate username
         String username = userRequest.getUsername();
+        if (username == null || username.isBlank()) {
+            throw new IllegalArgumentException("Nome de usuário é obrigatório");
+        }
+        if (username.length() > 50) {
+            throw new IllegalArgumentException("Nome de usuário deve ter no máximo 50 caracteres");
+        }
         if (!username.matches("^[a-zA-Z0-9_]+$")) {
             throw new IllegalArgumentException("Nome de usuário não pode conter caracteres especiais ou espaços");
+        }
+
+        // Validate email
+        String email = userRequest.getEmail();
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Email é obrigatório");
+        }
+        if (email.length() > 100) {
+            throw new IllegalArgumentException("Email deve ter no máximo 100 caracteres");
+        }
+        if (!email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$")) {
+            throw new IllegalArgumentException("Email deve ser válido");
+        }
+
+        // Validate password
+        String password = userRequest.getPassword();
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("Senha é obrigatória");
+        }
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("A senha deve ter pelo menos 6 caracteres");
+        }
+        if (password.length() > 100) {
+            throw new IllegalArgumentException("A senha deve ter no máximo 100 caracteres");
+        }
+        if (!password.matches(".*[!@#$%^&*(),.?\":{}|<>].*")) {
+            throw new IllegalArgumentException("A senha deve conter pelo menos um caractere especial");
+        }
+
+        // Validate bio
+        String bio = userRequest.getBio();
+        if (bio != null && bio.length() > 255) {
+            throw new IllegalArgumentException("Bio deve ter menos de 255 caracteres");
         }
 
         Optional<User> existingUserByEmail = userRepository.findByEmail(userRequest.getEmail());
