@@ -6,7 +6,6 @@ import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.repository.UserRepository;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -56,6 +55,9 @@ public class AuthService {
     }
 
     public Long getUserIdFromAuthentication(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
         Object principal = authentication.getPrincipal();
         if (principal == null) {
             throw new IllegalArgumentException("Principal cannot be null");

@@ -115,7 +115,6 @@ public class UserController {
     @Operation(
             summary = "Obter dados públicos do usuário",
             description = "Retorna os dados públicos do usuário com base no nome de usuário fornecido",
-            security = {@SecurityRequirement(name = "bearerAuth")},
             responses = {
                     @ApiResponse(responseCode = "200", description = "Dados do usuário retornados com sucesso",
                             content = @Content(

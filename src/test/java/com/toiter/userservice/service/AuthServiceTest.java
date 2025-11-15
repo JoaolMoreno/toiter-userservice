@@ -307,8 +307,9 @@
 //    void testGetUserIdFromAuthentication_NullAuthentication() {
 //        Authentication authentication = null;
 //
-//        assertThrows(NullPointerException.class, () ->
-//                authService.getUserIdFromAuthentication(authentication));
+//        Long result = authService.getUserIdFromAuthentication(authentication);
+//
+//        assertEquals(null, result);
 //    }
 //
 //    // Test refreshTokens when extractUsername throws an exception
