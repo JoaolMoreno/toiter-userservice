@@ -44,6 +44,7 @@ public class ImageController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.IMAGE_JPEG_VALUE)
+                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
                 .body(image.getImage());
     }
 }
