@@ -16,15 +16,15 @@ public class InternalUserController {
         this.userService = userService;
     }
 
-    @GetMapping("/")
+    @GetMapping("/public")
     public ResponseEntity<UserPublicData> getUser(
-            @RequestParam String username,
-            @RequestParam Long userId
+            @RequestParam(required = false) String username,
+            @RequestParam(required = false) Long userId
     ) {
         if (username == null && userId == null) {
             return ResponseEntity.badRequest().build();
         }
-        if(username == null) {
+        if (username == null) {
             username = userService.getUsernameByUserId(userId);
         }
         return ResponseEntity.ok(userService.getPublicUserDataByUsername(username, null));
