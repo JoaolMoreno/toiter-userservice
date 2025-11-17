@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.databind.jsontype.PolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.UserPublicData;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -65,8 +66,8 @@ public class RedisConfig {
      * @return um RedisTemplate configurado para chaves do tipo String e valores do tipo User
      */
     @Bean
-    public RedisTemplate<String, com.toiter.userservice.entity.User> redisTemplateForUser(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, com.toiter.userservice.entity.User> template = new RedisTemplate<>();
+    public RedisTemplate<String, User> redisTemplateForUser(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, User> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         template.setKeySerializer(new StringRedisSerializer());
 
