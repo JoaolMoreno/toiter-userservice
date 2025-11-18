@@ -17,14 +17,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,24 +36,17 @@ public class UserService {
     private final FollowRepository followRepository;
     private final PostClientService postClientService;
     private final ImageService imageService;
-    private final RedisTemplate<String, Long> redisTemplateForLong;
-    private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
-    private final RedisTemplate<String, User> redisTemplateForUser;
+    private final CacheService cacheService;
     private final KafkaProducer kafkaProducer;
-    private static final String USERNAME_TO_ID_KEY_PREFIX = "user:username:";
-    private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
-    private static final String USER_BY_ID_KEY_PREFIX = "user:id:";
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, RedisTemplate<String, Long> redisTemplateForLong, RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData, RedisTemplate<String, User> redisTemplateForUser, KafkaProducer kafkaProducer) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, CacheService cacheService, KafkaProducer kafkaProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.followRepository = followRepository;
         this.postClientService = postClientService;
         this.imageService = imageService;
-        this.redisTemplateForLong = redisTemplateForLong;
-        this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
-        this.redisTemplateForUser = redisTemplateForUser;
+        this.cacheService = cacheService;
         this.kafkaProducer = kafkaProducer;
     }
 
@@ -172,32 +162,20 @@ public class UserService {
     public UserPublicData getPublicUserDataByUsername(@NotNull String username, @Min(1) Long authenticatedUserId) {
         logger.info("Fetching public data for username: {}", username);
 
-        ValueOperations<String, Long> valueOpsForLong = redisTemplateForLong.opsForValue();
-        String userIdKey = USERNAME_TO_ID_KEY_PREFIX + username;
-        Number rawValue = valueOpsForLong.get(userIdKey);
-        Long userId = rawValue != null ? rawValue.longValue() : null;
-
+        Long userId = cacheService.getUserIdByUsername(username);
         if (userId == null) {
-            logger.debug("User ID not found in cache for username: {}. Fetching from database.", username);
             userId = userRepository.findUserIdByUsername(username)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
-            valueOpsForLong.set(userIdKey, userId);
+            cacheService.setUserIdByUsername(username, userId);
         }
-        redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
-        logger.debug("User ID for username {}: {}", username, userId);
 
-        ValueOperations<String, UserPublicData> valueOpsForPublicData = redisTemplateForUserPublicData.opsForValue();
-        String publicDataKey = USER_PUBLIC_DATA_KEY_PREFIX + userId;
-        UserPublicData publicData = valueOpsForPublicData.get(publicDataKey);
-
+        UserPublicData publicData = cacheService.getUserPublicData(userId);
         if (publicData == null) {
-            logger.debug("User public data not found in cache for ID: {}. Fetching from database.", userId);
             UserPublicProjection userProjection = userRepository.findProjectedById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
             int followersCount = followRepository.countByUserId(userId);
             int followingCount = followRepository.countByFollowerId(userId);
-
             Integer postsCount = postClientService.getPostsCount(userId);
 
             publicData = new UserPublicData(
@@ -212,10 +190,8 @@ public class UserService {
                     null,
                     postsCount
             );
-            valueOpsForPublicData.set(publicDataKey, publicData);
+            cacheService.setUserPublicData(userId, publicData);
         }
-        redisTemplateForUserPublicData.expire(publicDataKey, Duration.ofHours(1));
-        logger.debug("Fetched public data for ID {}: {}", userId, publicData);
 
         if (!userId.equals(authenticatedUserId) && authenticatedUserId != null) {
             logger.debug("Processing relationship data (isFollowing, isFollowingMe) for user ID: {}", userId);
@@ -316,46 +292,59 @@ public class UserService {
     }
 
     public User getUserById(Long userId) {
-        logger.debug("Fetching user by ID: {}", userId);
-
-        ValueOperations<String, User> valueOps = redisTemplateForUser.opsForValue();
-        String userKey = USER_BY_ID_KEY_PREFIX + userId;
-        User user = valueOps.get(userKey);
-
-        if (user == null) {
-            logger.debug("User not found in cache for ID: {}. Fetching from database.", userId);
-            user = userRepository.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
-            valueOps.set(userKey, user);
-            redisTemplateForUser.expire(userKey, Duration.ofHours(1));
-        } else {
-            logger.debug("User found in cache for ID: {}", userId);
-            redisTemplateForUser.expire(userKey, Duration.ofHours(1));
+        User user = cacheService.getUserById(userId);
+        if (user != null) {
+            return user;
         }
 
-        return user;
+        String lockKey = "lock:user:" + userId;
+        if (cacheService.trySetLock(lockKey, 5)) {
+            user = cacheService.getUserById(userId);
+            if (user != null) {
+                cacheService.deleteLock(lockKey);
+                return user;
+            }
+            user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            cacheService.setUserById(userId, user);
+            cacheService.deleteLock(lockKey);
+            return user;
+        } else {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return getUserById(userId);
+        }
     }
 
     public Long getUserIdByUsername(String username) {
-        logger.debug("Fetching user ID by username: {}", username);
-
-        ValueOperations<String, Long> valueOps = redisTemplateForLong.opsForValue();
-        String userIdKey = USERNAME_TO_ID_KEY_PREFIX + username;
-        Number rawValue = valueOps.get(userIdKey);
-        Long userId = rawValue != null ? rawValue.longValue() : null;
-
-        if (userId == null) {
-            logger.debug("User ID not found in cache for username: {}. Fetching from database.", username);
-            userId = userRepository.findUserIdByUsername(username)
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
-            valueOps.set(userIdKey, userId);
-            redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
-        } else {
-            logger.debug("User ID found in cache for username: {}", username);
-            redisTemplateForLong.expire(userIdKey, Duration.ofHours(1));
+        Long userId = cacheService.getUserIdByUsername(username);
+        if (userId != null) {
+            return userId;
         }
 
-        return userId;
+        String lockKey = "lock:userid:" + username;
+        if (cacheService.trySetLock(lockKey, 5)) {
+            userId = cacheService.getUserIdByUsername(username);
+            if (userId != null) {
+                cacheService.deleteLock(lockKey);
+                return userId;
+            }
+            userId = userRepository.findUserIdByUsername(username)
+                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+            cacheService.setUserIdByUsername(username, userId);
+            cacheService.deleteLock(lockKey);
+            return userId;
+        } else {
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return getUserIdByUsername(username);
+        }
     }
 
     public Page<String> getExistingUsers(String username, int page, int size) {
@@ -394,5 +383,24 @@ public class UserService {
 
     public String getProfilePictureUrl(Long profileImageId) {
         return profileImageId != null ? serverUrl + "/images/" + profileImageId : null;
+    }
+
+    public UserPublicData createUserPublicData(User user) {
+        int followersCount = followRepository.countByUserId(user.getId());
+        int followingCount = followRepository.countByFollowerId(user.getId());
+        Integer postsCount = postClientService.getPostsCount(user.getId());
+
+        return new UserPublicData(
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getBio(),
+                user.getProfileImageId(),
+                user.getHeaderImageId(),
+                followersCount,
+                followingCount,
+                null,
+                null,
+                postsCount
+        );
     }
 }

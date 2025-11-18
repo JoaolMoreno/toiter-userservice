@@ -3,9 +3,9 @@ package com.toiter.userservice.consumer;
 import com.toiter.userservice.model.FollowCreatedEvent;
 import com.toiter.userservice.model.FollowDeletedEvent;
 import com.toiter.userservice.model.UserPublicData;
+import com.toiter.userservice.service.CacheService;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 @Service
 public class FollowEventConsumer {
 
-    private final RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData;
-    private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
     private static final Logger logger = LoggerFactory.getLogger(FollowEventConsumer.class);
 
-    public FollowEventConsumer(RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData) {
-        this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
+    private final CacheService cacheService;
+
+    public FollowEventConsumer(CacheService cacheService) {
+        this.cacheService = cacheService;
     }
 
     @KafkaListener(topics = "follow-events-topic", groupId = "follow-event-consumers")
@@ -56,25 +56,20 @@ public class FollowEventConsumer {
     }
 
     private void updateUserCount(Long userId, int delta, boolean isFollowing) {
-        String userPublicDataKey = USER_PUBLIC_DATA_KEY_PREFIX + userId;
-
-        if (Boolean.TRUE.equals(redisTemplateForUserPublicData.hasKey(userPublicDataKey))) {
-            UserPublicData publicData = redisTemplateForUserPublicData.opsForValue().get(userPublicDataKey);
-
-            if (publicData != null) {
-                if (isFollowing) {
-                    int newFollowingCount = Math.max(0, publicData.getFollowingCount() + delta);
-                    publicData.setFollowingCount(newFollowingCount);
-                    logger.debug("Updated following count for user ID: {}. New count: {}", userId, newFollowingCount);
-                } else {
-                    int newFollowerCount = Math.max(0, publicData.getFollowersCount() + delta);
-                    publicData.setFollowersCount(newFollowerCount);
-                    logger.debug("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
-                }
-                redisTemplateForUserPublicData.opsForValue().set(userPublicDataKey, publicData);
+        UserPublicData data = cacheService.getUserPublicData(userId);
+        if (data != null) {
+            if (isFollowing) {
+                int newFollowingCount = Math.max(0, data.getFollowingCount() + delta);
+                data.setFollowingCount(newFollowingCount);
+                logger.debug("Updated following count for user ID: {}. New count: {}", userId, newFollowingCount);
+            } else {
+                int newFollowerCount = Math.max(0, data.getFollowersCount() + delta);
+                data.setFollowersCount(newFollowerCount);
+                logger.debug("Updated followers count for user ID: {}. New count: {}", userId, newFollowerCount);
             }
+            cacheService.setUserPublicData(userId, data);
         } else {
-            logger.warn("User ID {} not found in Redis. Skipping update.", userId);
+            logger.debug("User public data not in cache for ID: {}, skipping update", userId);
         }
     }
 }
