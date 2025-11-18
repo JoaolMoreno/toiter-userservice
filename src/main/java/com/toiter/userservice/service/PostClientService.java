@@ -35,15 +35,4 @@ public class PostClientService {
 
         return restTemplate.exchange(url, HttpMethod.GET, entity, Integer.class).getBody();
     }
-
-    public void updateProfileImage(Long userId, String imageUrl) {
-        logger.debug("Updating profile image for user ID: {}", userId);
-        String url = postServiceUrl + "/posts/update-profile-image?userId=" + userId + "&imageUrl=" + imageUrl;
-        HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", "Bearer " + sharedKey);
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
-        restTemplate.exchange(url, HttpMethod.POST, entity, Void.class);
-    }
 }

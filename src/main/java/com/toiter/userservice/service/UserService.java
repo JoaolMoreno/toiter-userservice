@@ -395,9 +395,4 @@ public class UserService {
     public String getProfilePictureUrl(Long profileImageId) {
         return profileImageId != null ? serverUrl + "/images/" + profileImageId : null;
     }
-
-    public void syncUserProfileImage(Long userId, Long profileImageId) {
-        String imageUrl = getProfilePictureUrl(profileImageId);
-        postClientService.updateProfileImage(userId, imageUrl);
-    }
 }

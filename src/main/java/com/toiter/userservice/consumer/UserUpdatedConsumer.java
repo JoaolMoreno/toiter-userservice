@@ -3,7 +3,6 @@ import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.UserPublicData;
 import com.toiter.userservice.model.UserUpdatedEvent;
 import com.toiter.userservice.repository.FollowRepository;
-import com.toiter.userservice.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -22,17 +21,15 @@ public class UserUpdatedConsumer {
     private static final String USER_PUBLIC_DATA_KEY_PREFIX = "user:public:";
     private static final String USER_BY_ID_KEY_PREFIX = "user:id:";
     private static final Logger logger = LoggerFactory.getLogger(UserUpdatedConsumer.class);
-    private final UserService userService;
 
     public UserUpdatedConsumer(RedisTemplate<String, Long> redisTemplateForLong,
                                RedisTemplate<String, UserPublicData> redisTemplateForUserPublicData,
                                RedisTemplate<String, User> redisTemplateForUser,
-                               FollowRepository followRepository, UserService userService) {
+                               FollowRepository followRepository) {
         this.redisTemplateForLong = redisTemplateForLong;
         this.redisTemplateForUserPublicData = redisTemplateForUserPublicData;
         this.redisTemplateForUser = redisTemplateForUser;
         this.followRepository = followRepository;
-        this.userService = userService;
     }
 
     @KafkaListener(topics = "user-updated-topic", groupId = "user-updated-consumers")
@@ -65,7 +62,6 @@ public class UserUpdatedConsumer {
         );
 
         valueOpsForPublicData.set(publicDataKey, publicData);
-        userService.syncUserProfileImage(userId, updatedUser.getProfileImageId());
 
         logger.info("Updated Redis cache for user ID: {}, username: {} (including User entity cache)", userId, updatedUser.getUsername());
     }
