@@ -81,17 +81,27 @@ public class AuthController {
     }
 
     @Operation(summary = "Atualizar token de acesso",
-            description = "Atualiza um token de acesso expirado",
+            description = "Atualiza um token de acesso expirado usando o refresh token do cookie HttpOnly",
             security = {@SecurityRequirement(name = "bearerAuth")})
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Token atualizado com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class))),
             @ApiResponse(responseCode = "400", description = "Token de atualização inválido")
     })
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(HttpServletRequest request) {
+    public ResponseEntity<LoginResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
         TokenResponse newTokenResponse = authService.refreshTokens(request);
-        return ResponseEntity.ok(newTokenResponse);
+        
+        // Atualizar o cookie accessToken com o novo token
+        Cookie accessCookie = new Cookie("accessToken", newTokenResponse.getAccessToken());
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(JWT_ACCESS_TOKEN_EXPIRATION);
+        response.addCookie(accessCookie);
+        
+        // Não retornar o token no corpo da resposta por segurança
+        return ResponseEntity.ok(new LoginResponse(newTokenResponse.getExpiresIn(), "Token atualizado com sucesso"));
     }
 
     @PostMapping("/logout")
