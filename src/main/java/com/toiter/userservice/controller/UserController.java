@@ -3,6 +3,7 @@ package com.toiter.userservice.controller;
 import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.model.UpdatedUser;
 import com.toiter.userservice.model.UserPublicData;
+import com.toiter.userservice.model.Views;
 import com.toiter.userservice.service.AuthService;
 import com.toiter.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import com.fasterxml.jackson.annotation.JsonView;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -112,6 +114,7 @@ public class UserController {
     }
 
     @GetMapping("/{username}")
+    @JsonView(Views.Public.class)
     @Operation(
             summary = "Obter dados públicos do usuário",
             description = "Retorna os dados públicos do usuário com base no nome de usuário fornecido",
@@ -132,6 +135,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @JsonView(Views.Public.class)
     @Operation(
             summary = "Obter dados do usuário autenticado",
             description = "Retorna os dados do usuário autenticado",

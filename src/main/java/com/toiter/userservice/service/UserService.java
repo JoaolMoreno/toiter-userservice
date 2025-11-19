@@ -179,6 +179,7 @@ public class UserService {
             Integer postsCount = postClientService.getPostsCount(userId);
 
             publicData = new UserPublicData(
+                    userId,
                     userProjection.getUsername(),
                     userProjection.getDisplayName(),
                     userProjection.getBio(),
@@ -202,6 +203,7 @@ public class UserService {
             logger.debug("isFollowing: {}, isFollowingMe: {} for user ID: {}", isFollowing, isFollowingMe, userId);
 
             return new UserPublicData(
+                    userId,
                     publicData.getUsername(),
                     publicData.getDisplayName(),
                     publicData.getBio(),
@@ -391,6 +393,7 @@ public class UserService {
         Integer postsCount = postClientService.getPostsCount(user.getId());
 
         return new UserPublicData(
+                user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getBio(),
