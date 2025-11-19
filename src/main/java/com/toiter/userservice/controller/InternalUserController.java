@@ -1,7 +1,9 @@
 package com.toiter.userservice.controller;
 
+import com.fasterxml.jackson.annotation.JsonView;
 import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.UserPublicData;
+import com.toiter.userservice.model.Views;
 import com.toiter.userservice.model.UserResponse;
 import com.toiter.userservice.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ public class InternalUserController {
     }
 
     @GetMapping("/public")
+    @JsonView(Views.Public.class)
     public ResponseEntity<UserPublicData> getUser(
             @RequestParam(required = false) String username,
             @RequestParam(required = false) Long userId

@@ -1,6 +1,8 @@
 package com.toiter.userservice.controller;
 
 import com.toiter.userservice.model.LoginRequest;
+import com.toiter.userservice.model.LoginResponse;
+import com.toiter.userservice.model.SessionResponse;
 import com.toiter.userservice.model.TokenResponse;
 import com.toiter.userservice.model.UserRequest;
 import com.toiter.userservice.service.AuthService;
@@ -50,14 +52,14 @@ public class AuthController {
         return ResponseEntity.ok("Usuário registrado com sucesso");
     }
 
-    @Operation(summary = "Login de um usuário", description = "Autentica o usuário e retorna um token de acesso")
+    @Operation(summary = "Login de um usuário", description = "Autentica o usuário e retorna um token de acesso via cookie HttpOnly")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Usuário autenticado com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class))),
             @ApiResponse(responseCode = "401", description = "Credenciais inválidas")
     })
     @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletResponse response) {
+    public ResponseEntity<LoginResponse> login(@RequestBody @Valid LoginRequest loginRequest, HttpServletResponse response) {
         TokenResponse tokenResponse = authService.authenticateAndGenerateTokens(loginRequest);
 
         Cookie refreshCookie = new Cookie("refresh_token", tokenResponse.getRefreshToken());
@@ -74,21 +76,32 @@ public class AuthController {
         accessCookie.setMaxAge(JWT_ACCESS_TOKEN_EXPIRATION);
         response.addCookie(accessCookie);
 
-        return ResponseEntity.ok(new TokenResponse(tokenResponse.getAccessToken(), null, tokenResponse.getExpiresIn()));
+        // Não retornar o token no corpo da resposta por segurança
+        return ResponseEntity.ok(new LoginResponse(tokenResponse.getExpiresIn(), "Login realizado com sucesso"));
     }
 
     @Operation(summary = "Atualizar token de acesso",
-            description = "Atualiza um token de acesso expirado",
+            description = "Atualiza um token de acesso expirado usando o refresh token do cookie HttpOnly",
             security = {@SecurityRequirement(name = "bearerAuth")})
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Token atualizado com sucesso",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = TokenResponse.class))),
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class))),
             @ApiResponse(responseCode = "400", description = "Token de atualização inválido")
     })
     @PostMapping("/refresh")
-    public ResponseEntity<TokenResponse> refresh(HttpServletRequest request) {
+    public ResponseEntity<LoginResponse> refresh(HttpServletRequest request, HttpServletResponse response) {
         TokenResponse newTokenResponse = authService.refreshTokens(request);
-        return ResponseEntity.ok(newTokenResponse);
+        
+        // Atualizar o cookie accessToken com o novo token
+        Cookie accessCookie = new Cookie("accessToken", newTokenResponse.getAccessToken());
+        accessCookie.setHttpOnly(true);
+        accessCookie.setSecure(true);
+        accessCookie.setPath("/");
+        accessCookie.setMaxAge(JWT_ACCESS_TOKEN_EXPIRATION);
+        response.addCookie(accessCookie);
+        
+        // Não retornar o token no corpo da resposta por segurança
+        return ResponseEntity.ok(new LoginResponse(newTokenResponse.getExpiresIn(), "Token atualizado com sucesso"));
     }
 
     @PostMapping("/logout")
@@ -111,25 +124,44 @@ public class AuthController {
     }
 
     @Operation(summary = "Verificar a validade da sessão do usuário",
-            description = "Valida o token de acesso e retorna informações básicas do usuário")
+            description = "Valida o token de acesso do cookie HttpOnly e retorna informações sobre a sessão")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Sessão válida"),
             @ApiResponse(responseCode = "401", description = "Token inválido ou expirado")
     })
     @GetMapping("/check-session")
-    public ResponseEntity<TokenResponse> checkSession(@RequestHeader("Authorization") String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("Token não encontrado ou inválido");
+    public ResponseEntity<SessionResponse> checkSession(HttpServletRequest request) {
+        // Extrair token do cookie
+        String token = null;
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
         }
 
-        String token = authorizationHeader.substring(7);
+        // Fallback para header Authorization (para compatibilidade com clientes não-browser)
+        if (token == null) {
+            String authorizationHeader = request.getHeader("Authorization");
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                token = authorizationHeader.substring(7);
+            }
+        }
+
+        if (token == null) {
+            return ResponseEntity.status(401).body(new SessionResponse(false, 0));
+        }
 
         if (!jwtService.isTokenValid(token)) {
-            return ResponseEntity.status(401).body(null);
+            return ResponseEntity.status(401).body(new SessionResponse(false, 0));
         }
+
         long expiresIn = jwtService.getTokenExpiration(token).getTime() / 1000;
 
-        return ResponseEntity.ok(new TokenResponse(token, null, expiresIn));
+        return ResponseEntity.ok(new SessionResponse(true, expiresIn));
     }
 
 }

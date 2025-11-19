@@ -49,7 +49,7 @@ public class ChatEventConsumer {
         // Envia a mensagem em um destino fixo por usuário
         String destination = "/queue/messages";
         MessageData messageData = new MessageData(
-                chat.getId(),
+                event.getMessage().getId(),
                 event.getMessage().getChat().getId(),
                 senderUsername,
                 event.getMessage().getContent(),
