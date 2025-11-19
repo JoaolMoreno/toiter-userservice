@@ -280,7 +280,7 @@ public class UserService {
 
         User user = new User();
         user.setUsername(userRequest.getUsername());
-        user.setDisplayName(userRequest.getUsername());
+        user.setDisplayName(userRequest.getUsername().substring(0, Math.min(userRequest.getUsername().length(), 30)));
         user.setEmail(userRequest.getEmail());
         user.setPassword(passwordEncoder.encode(userRequest.getPassword()));
         user.setBio(userRequest.getBio());
