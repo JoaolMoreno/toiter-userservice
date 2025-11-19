@@ -3,10 +3,9 @@ package com.toiter.userservice.controller;
 import com.toiter.userservice.entity.Follow;
 import com.toiter.userservice.model.FollowData;
 import com.toiter.userservice.service.FollowService;
-import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.UserService;
+import com.toiter.userservice.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -14,6 +13,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -24,12 +24,12 @@ public class FollowController {
 
     private final FollowService followService;
     private final UserService userService;
-    private final JwtService jwtService;
+    private final AuthService authService;
 
-    public FollowController(FollowService followService, UserService userService, JwtService jwtService) {
+    public FollowController(FollowService followService, UserService userService, AuthService authService) {
         this.followService = followService;
         this.userService = userService;
-        this.jwtService = jwtService;
+        this.authService = authService;
     }
 
     @GetMapping("/{username}/followers")
@@ -78,9 +78,8 @@ public class FollowController {
     )
     public Follow followUser(
             @PathVariable @NotNull String username,
-            @RequestHeader("Authorization") @Parameter(description = "Token de autenticação Bearer") String token) {
-        String followerUsername = extractUsernameFromToken(token);
-        Long followerId = userService.getUserByUsername(followerUsername).getId();
+            Authentication authentication) {
+        Long followerId = authService.getUserIdFromAuthentication(authentication);
         Long userId = userService.getUserByUsername(username).getId();
         if(followerId.equals(userId)) {
             throw new RuntimeException("Você não pode seguir a si mesmo");
@@ -101,18 +100,12 @@ public class FollowController {
     )
     public void unfollowUser(
             @PathVariable @NotNull String username,
-            @RequestHeader("Authorization") @Parameter(description = "Token de autenticação Bearer") String token) {
-        String followerUsername = extractUsernameFromToken(token);
-        Long followerId = userService.getUserByUsername(followerUsername).getId();
+            Authentication authentication) {
+        Long followerId = authService.getUserIdFromAuthentication(authentication);
         Long userId = userService.getUserByUsername(username).getId();
         if(followerId.equals(userId)) {
             throw new RuntimeException("Você não pode deixar de seguir a si mesmo");
         }
         followService.unfollowUser(userId, followerId);
-    }
-
-    private String extractUsernameFromToken(@NotNull String token) {
-        String jwt = token.replace("Bearer ", "");
-        return jwtService.extractUsername(jwt);
     }
 }
