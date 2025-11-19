@@ -14,9 +14,17 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 - Integração com Redis para cache de mapeamentos `username -> userId` e dados públicos.
 
 #### **2. Autenticação e Autorização**
-- Login com JWT:
+- **Autenticação baseada em HttpOnly Cookies** (segura contra XSS):
+    - JWT armazenado em cookies HttpOnly e Secure.
+    - Tokens nunca expostos ao JavaScript do navegador.
     - Inclui `userId` e `username` no token.
-    - Controle de permissões baseado no usuário autenticado.
+    - Suporte a refresh token para renovação automática.
+- **WebSocket Authentication**:
+    - Autenticação via cookies durante o handshake HTTP.
+    - Sem necessidade de enviar tokens em headers STOMP.
+- **Compatibilidade com clientes não-browser**:
+    - Suporte a header `Authorization: Bearer <token>` como fallback.
+    - Rotas `/internal/**` utilizam chave compartilhada.
 - Endpoints protegidos para garantir que cada usuário possa gerenciar apenas suas próprias informações.
 
 #### **3. Relacionamento entre Usuários**
@@ -39,13 +47,86 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 
 ---
 
+### **Autenticação com HttpOnly Cookies - Guia para Frontend**
+
+#### **Fluxo de Login**
+```javascript
+// 1. Login do usuário
+const response = await axios.post('/api/auth/login', {
+  usernameOrEmail: 'usuario',
+  password: 'senha123'
+}, { withCredentials: true });
+
+// Response: { expiresIn: 3600, message: "Login realizado com sucesso" }
+// Cookies HttpOnly são definidos automaticamente: accessToken, refresh_token
+
+// 2. Buscar dados do usuário
+const user = await axios.get('/api/users/me', { withCredentials: true });
+```
+
+#### **Configuração do Axios**
+```javascript
+// Habilitar envio de cookies em todas as requisições
+axios.defaults.withCredentials = true;
+
+// Interceptor para renovação automática de token
+axios.interceptors.response.use(
+  response => response,
+  async error => {
+    if (error.response?.status === 401 && !error.config._retry) {
+      error.config._retry = true;
+      
+      // Renovar token
+      await axios.post('/api/auth/refresh', {}, { withCredentials: true });
+      
+      // Retry da requisição original
+      return axios(error.config);
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+#### **Conexão WebSocket**
+```javascript
+// Conectar ao WebSocket - cookies enviados automaticamente
+const socket = new SockJS('/api/chat');
+const stompClient = Stomp.over(socket);
+
+// Conectar sem header Authorization
+stompClient.connect({}, (frame) => {
+  console.log('Conectado:', frame);
+  
+  // Enviar mensagem
+  stompClient.send('/app/chat/123/message', {}, 'Hello!');
+});
+```
+
+#### **Logout**
+```javascript
+// Limpar cookies de autenticação
+await axios.post('/api/auth/logout', {}, { withCredentials: true });
+```
+
+#### **Benefícios de Segurança**
+- ✅ **Proteção contra XSS**: Tokens nunca acessíveis ao JavaScript
+- ✅ **HttpOnly + Secure**: Cookies protegidos contra roubo
+- ✅ **Renovação Automática**: Token refresh transparente
+- ✅ **WebSocket Seguro**: Autenticação via cookie no handshake
+- ✅ **Sem Manipulação de Tokens**: Browser gerencia cookies automaticamente
+
+---
+
 ### **Endpoints Disponíveis**
 
 #### **1. Autenticação**
-| Método   | Endpoint         | Descrição                    |
-|----------|------------------|------------------------------|
-| `POST`   | `/auth/register` | Registro de um novo usuário. |
-| `POST`   | `/auth/login`    | Login e geração de JWT.      |
+| Método   | Endpoint            | Descrição                                             |
+|----------|---------------------|-------------------------------------------------------|
+| `POST`   | `/auth/register`    | Registro de um novo usuário.                          |
+| `POST`   | `/auth/login`       | Login - define cookies HttpOnly (accessToken, refresh_token). |
+| `POST`   | `/auth/refresh`     | Renova o accessToken usando refresh_token do cookie.  |
+| `POST`   | `/auth/logout`      | Limpa os cookies de autenticação.                     |
+| `GET`    | `/auth/check-session` | Verifica validade da sessão atual.                   |
 
 #### **2. Usuários**
 | Método   | Endpoint                   | Descrição                                                |
@@ -63,6 +144,17 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
 | `DELETE` | `/follows/{username}/unfollow`| Deixar de seguir um usuário.                            |
 | `GET`    | `/follows/{username}/followers` | Listar seguidores de um usuário.                        |
 | `GET`    | `/follows/{username}/followings` | Listar usuários que o usuário está seguindo.            |
+
+#### **4. Chat e WebSocket**
+| Tipo     | Endpoint                      | Descrição                                                |
+|----------|-------------------------------|----------------------------------------------------------|
+| `POST`   | `/chats/start/{username}`     | Iniciar um chat com outro usuário.                       |
+| `POST`   | `/chats/{chatId}/message`     | Enviar mensagem via HTTP (REST).                         |
+| `GET`    | `/chats/{chatId}/messages`    | Recuperar mensagens de um chat (paginado).               |
+| `GET`    | `/chats/my-chats`             | Listar chats do usuário autenticado.                     |
+| `WS`     | `/chat` (SockJS)              | Endpoint WebSocket para conexão STOMP.                   |
+| `STOMP`  | `/app/chat/{chatId}/message`  | Enviar mensagem em tempo real via WebSocket.            |
+| `SUB`    | `/user/queue/chat`            | Subscrição para receber mensagens do usuário.           |
 
 ---
 
@@ -119,9 +211,21 @@ O **User Service** é um dos microsserviços do ecossistema **Toiter**, respons�
     - Contagem de seguidores (`followersCount`) atualizada em tempo real.
 
 #### **4. Segurança**
-- **Spring Security com JWT**:
+- **Spring Security com JWT em HttpOnly Cookies**:
+    - Tokens armazenados em cookies HttpOnly e Secure.
+    - **accessToken**: Cookie com path `/` para todas as APIs.
+    - **refresh_token**: Cookie com path `/auth/refresh` para renovação.
+    - Proteção contra XSS (tokens não acessíveis via JavaScript).
+    - Proteção contra CSRF via verificação de origem em WebSockets.
+    - CORS configurado com `allowCredentials: true` para origens permitidas.
+- **Autenticação de WebSocket**:
+    - Endpoint STOMP em `/chat` (via `/api/chat` com context-path).
+    - Autenticação durante handshake HTTP usando cookies.
+    - Sem necessidade de tokens em headers STOMP.
+- **Controle de Acesso**:
     - Tokens contêm `userId` e `username`.
-    - Controle de acesso aos endpoints baseado no usuário autenticado.
+    - Endpoints protegidos baseados no usuário autenticado.
+    - Rotas `/internal/**` protegidas com chave compartilhada.
 
 #### **5. Framework**
 - **Spring Boot**:
