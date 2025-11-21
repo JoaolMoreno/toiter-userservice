@@ -41,17 +41,12 @@ public class RateLimitService {
      * Check if a user is allowed to make a request based on rate limits.
      *
      * @param userId The user ID (can be null for unauthenticated requests)
+     * @param ipAddress The IP address of the request (used for unauthenticated users)
      * @param requestType The type of request (GET, OTHER, LOGIN)
      * @return true if the request is allowed, false otherwise
      */
-    public boolean isAllowed(Long userId, RequestType requestType) {
-        // If user is not authenticated, we don't apply rate limiting
-        // (or you could use IP-based rate limiting)
-        if (userId == null && requestType != RequestType.LOGIN) {
-            return true;
-        }
-
-        String key = buildRateLimitKey(userId, requestType);
+    public boolean isAllowed(Long userId, String ipAddress, RequestType requestType) {
+        String key = buildRateLimitKey(userId, ipAddress, requestType);
         int limit = getLimit(requestType);
         int windowSeconds = getWindowSeconds(requestType);
 
@@ -77,15 +72,12 @@ public class RateLimitService {
      * Get the remaining number of requests for a user.
      *
      * @param userId The user ID
+     * @param ipAddress The IP address of the request
      * @param requestType The type of request
      * @return The number of remaining requests
      */
-    public long getRemainingRequests(Long userId, RequestType requestType) {
-        if (userId == null && requestType != RequestType.LOGIN) {
-            return Long.MAX_VALUE;
-        }
-
-        String key = buildRateLimitKey(userId, requestType);
+    public long getRemainingRequests(Long userId, String ipAddress, RequestType requestType) {
+        String key = buildRateLimitKey(userId, ipAddress, requestType);
         int limit = getLimit(requestType);
 
         Long currentCount = redisTemplateForLong.opsForValue().get(key);
@@ -101,15 +93,12 @@ public class RateLimitService {
      * Get the time until the rate limit resets.
      *
      * @param userId The user ID
+     * @param ipAddress The IP address of the request
      * @param requestType The type of request
      * @return The time in seconds until reset, or 0 if no limit is active
      */
-    public long getResetTime(Long userId, RequestType requestType) {
-        if (userId == null && requestType != RequestType.LOGIN) {
-            return 0;
-        }
-
-        String key = buildRateLimitKey(userId, requestType);
+    public long getResetTime(Long userId, String ipAddress, RequestType requestType) {
+        String key = buildRateLimitKey(userId, ipAddress, requestType);
         Long ttl = redisTemplateForLong.getExpire(key);
         
         if (ttl == null || ttl < 0) {
@@ -119,8 +108,15 @@ public class RateLimitService {
         return ttl;
     }
 
-    private String buildRateLimitKey(Long userId, RequestType requestType) {
-        String userKey = userId != null ? userId.toString() : "unauthenticated";
+    private String buildRateLimitKey(Long userId, String ipAddress, RequestType requestType) {
+        String userKey;
+        if (userId != null) {
+            userKey = "user:" + userId;
+        } else if (ipAddress != null) {
+            userKey = "ip:" + ipAddress;
+        } else {
+            userKey = "unknown";
+        }
         return String.format("rate_limit:%s:%s", userKey, requestType.name().toLowerCase());
     }
 
@@ -138,6 +134,10 @@ public class RateLimitService {
             case OTHER -> otherWindowSeconds;
             case LOGIN -> loginWindowSeconds;
         };
+    }
+
+    public int getLimitForType(RequestType requestType) {
+        return getLimit(requestType);
     }
 
     public enum RequestType {

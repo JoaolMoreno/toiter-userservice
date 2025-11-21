@@ -45,17 +45,21 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // Extract user ID from JWT token
         Long userId = extractUserIdFromRequest(request);
+        
+        // Extract IP address from request
+        String ipAddress = extractIpAddress(request);
 
         // Determine request type
         RateLimitService.RequestType requestType = determineRequestType(path, method);
 
         // Check rate limit
-        if (!rateLimitService.isAllowed(userId, requestType)) {
+        if (!rateLimitService.isAllowed(userId, ipAddress, requestType)) {
             // Rate limit exceeded
-            long resetTime = rateLimitService.getResetTime(userId, requestType);
+            long resetTime = rateLimitService.getResetTime(userId, ipAddress, requestType);
+            int limit = rateLimitService.getLimitForType(requestType);
             
             response.setStatus(429); // Too Many Requests
-            response.setHeader("X-RateLimit-Limit", String.valueOf(getLimit(requestType)));
+            response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
             response.setHeader("X-RateLimit-Remaining", "0");
             response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + resetTime));
             response.setHeader("Retry-After", String.valueOf(resetTime));
@@ -68,10 +72,11 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         // Add rate limit headers to response
-        long remaining = rateLimitService.getRemainingRequests(userId, requestType);
-        long resetTime = rateLimitService.getResetTime(userId, requestType);
+        long remaining = rateLimitService.getRemainingRequests(userId, ipAddress, requestType);
+        long resetTime = rateLimitService.getResetTime(userId, ipAddress, requestType);
+        int limit = rateLimitService.getLimitForType(requestType);
         
-        response.setHeader("X-RateLimit-Limit", String.valueOf(getLimit(requestType)));
+        response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
         response.setHeader("X-RateLimit-Remaining", String.valueOf(remaining));
         response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + resetTime));
 
@@ -108,6 +113,24 @@ public class RateLimitFilter extends OncePerRequestFilter {
             // If token is invalid, treat as unauthenticated
             return null;
         }
+    }
+
+    /**
+     * Extract IP address from the request, considering proxy headers.
+     */
+    private String extractIpAddress(HttpServletRequest request) {
+        String ipAddress = request.getHeader("X-Forwarded-For");
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getHeader("X-Real-IP");
+        }
+        if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+            ipAddress = request.getRemoteAddr();
+        }
+        // If X-Forwarded-For contains multiple IPs, take the first one (original client IP)
+        if (ipAddress != null && ipAddress.contains(",")) {
+            ipAddress = ipAddress.split(",")[0].trim();
+        }
+        return ipAddress;
     }
 
     /**
@@ -149,17 +172,5 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         // All other methods (POST, PUT, DELETE, etc.) have more restrictive limits
         return RateLimitService.RequestType.OTHER;
-    }
-
-    /**
-     * Get the limit for a request type (for header purposes).
-     */
-    private int getLimit(RateLimitService.RequestType requestType) {
-        // These values should match the configuration
-        return switch (requestType) {
-            case GET -> 100;
-            case OTHER -> 30;
-            case LOGIN -> 5;
-        };
     }
 }

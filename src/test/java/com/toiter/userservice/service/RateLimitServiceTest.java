@@ -44,11 +44,12 @@ class RateLimitServiceTest {
     void testIsAllowed_FirstRequest_ShouldBeAllowed() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(null);
 
         // Act
-        boolean allowed = rateLimitService.isAllowed(userId, requestType);
+        boolean allowed = rateLimitService.isAllowed(userId, ipAddress, requestType);
 
         // Assert
         assertTrue(allowed);
@@ -59,11 +60,12 @@ class RateLimitServiceTest {
     void testIsAllowed_WithinLimit_ShouldBeAllowed() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(50L);
 
         // Act
-        boolean allowed = rateLimitService.isAllowed(userId, requestType);
+        boolean allowed = rateLimitService.isAllowed(userId, ipAddress, requestType);
 
         // Assert
         assertTrue(allowed);
@@ -74,11 +76,12 @@ class RateLimitServiceTest {
     void testIsAllowed_ExceedLimit_ShouldBeDenied() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(100L);
 
         // Act
-        boolean allowed = rateLimitService.isAllowed(userId, requestType);
+        boolean allowed = rateLimitService.isAllowed(userId, ipAddress, requestType);
 
         // Assert
         assertFalse(allowed);
@@ -89,39 +92,43 @@ class RateLimitServiceTest {
     void testIsAllowed_LoginRequestType_ShouldUseLowerLimit() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.LOGIN;
         when(valueOperations.get(anyString())).thenReturn(5L);
 
         // Act
-        boolean allowed = rateLimitService.isAllowed(userId, requestType);
+        boolean allowed = rateLimitService.isAllowed(userId, ipAddress, requestType);
 
         // Assert
         assertFalse(allowed);
     }
 
     @Test
-    void testIsAllowed_UnauthenticatedUser_NonLoginRequest_ShouldBeAllowed() {
+    void testIsAllowed_UnauthenticatedUserWithIP_ShouldApplyRateLimit() {
         // Arrange
         Long userId = null;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
+        when(valueOperations.get(anyString())).thenReturn(null);
 
         // Act
-        boolean allowed = rateLimitService.isAllowed(userId, requestType);
+        boolean allowed = rateLimitService.isAllowed(userId, ipAddress, requestType);
 
         // Assert
         assertTrue(allowed);
-        verify(valueOperations, never()).get(anyString());
+        verify(valueOperations).set(anyString(), eq(1L), any(Duration.class));
     }
 
     @Test
     void testGetRemainingRequests_NoRequestsMade_ShouldReturnFullLimit() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(null);
 
         // Act
-        long remaining = rateLimitService.getRemainingRequests(userId, requestType);
+        long remaining = rateLimitService.getRemainingRequests(userId, ipAddress, requestType);
 
         // Assert
         assertEquals(100, remaining);
@@ -131,11 +138,12 @@ class RateLimitServiceTest {
     void testGetRemainingRequests_SomeRequestsMade_ShouldReturnCorrectRemaining() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(40L);
 
         // Act
-        long remaining = rateLimitService.getRemainingRequests(userId, requestType);
+        long remaining = rateLimitService.getRemainingRequests(userId, ipAddress, requestType);
 
         // Assert
         assertEquals(60, remaining);
@@ -145,11 +153,12 @@ class RateLimitServiceTest {
     void testGetRemainingRequests_LimitExceeded_ShouldReturnZero() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(valueOperations.get(anyString())).thenReturn(150L);
 
         // Act
-        long remaining = rateLimitService.getRemainingRequests(userId, requestType);
+        long remaining = rateLimitService.getRemainingRequests(userId, ipAddress, requestType);
 
         // Assert
         assertEquals(0, remaining);
@@ -159,11 +168,12 @@ class RateLimitServiceTest {
     void testGetResetTime_WithActiveLimit_ShouldReturnTTL() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(redisTemplateForLong.getExpire(anyString())).thenReturn(45L);
 
         // Act
-        long resetTime = rateLimitService.getResetTime(userId, requestType);
+        long resetTime = rateLimitService.getResetTime(userId, ipAddress, requestType);
 
         // Assert
         assertEquals(45, resetTime);
@@ -173,27 +183,26 @@ class RateLimitServiceTest {
     void testGetResetTime_NoActiveLimit_ShouldReturnZero() {
         // Arrange
         Long userId = 123L;
+        String ipAddress = "192.168.1.1";
         RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
         when(redisTemplateForLong.getExpire(anyString())).thenReturn(-1L);
 
         // Act
-        long resetTime = rateLimitService.getResetTime(userId, requestType);
+        long resetTime = rateLimitService.getResetTime(userId, ipAddress, requestType);
 
         // Assert
         assertEquals(0, resetTime);
     }
 
     @Test
-    void testGetResetTime_UnauthenticatedUser_ShouldReturnZero() {
-        // Arrange
-        Long userId = null;
-        RateLimitService.RequestType requestType = RateLimitService.RequestType.GET;
-
-        // Act
-        long resetTime = rateLimitService.getResetTime(userId, requestType);
-
-        // Assert
-        assertEquals(0, resetTime);
-        verify(redisTemplateForLong, never()).getExpire(anyString());
+    void testGetLimitForType_ShouldReturnCorrectLimits() {
+        // Test GET limit
+        assertEquals(100, rateLimitService.getLimitForType(RateLimitService.RequestType.GET));
+        
+        // Test OTHER limit
+        assertEquals(30, rateLimitService.getLimitForType(RateLimitService.RequestType.OTHER));
+        
+        // Test LOGIN limit
+        assertEquals(5, rateLimitService.getLimitForType(RateLimitService.RequestType.LOGIN));
     }
 }
