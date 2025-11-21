@@ -8,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -23,6 +25,8 @@ import java.io.IOException;
 @Component
 @Order(1)
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(RateLimitFilter.class);
 
     private final RateLimitService rateLimitService;
     private final JwtService jwtService;
@@ -113,6 +117,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return jwtService.extractUserId(jwt);
         } catch (JwtException e) {
             // If token is invalid or expired, treat as unauthenticated
+            logger.debug("Invalid JWT token in rate limiting filter: {}", e.getMessage());
             return null;
         }
     }
