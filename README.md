@@ -226,6 +226,17 @@ await axios.post('/api/auth/logout', {}, { withCredentials: true });
     - Tokens contêm `userId` e `username`.
     - Endpoints protegidos baseados no usuário autenticado.
     - Rotas `/internal/**` protegidas com chave compartilhada.
+- **Rate Limiting**:
+    - Rate limiting por usuário implementado com Redis.
+    - Diferentes limites baseados no tipo de requisição:
+        - **GET**: 100 requisições por minuto
+        - **POST/PUT/DELETE**: 30 requisições por minuto
+        - **Login**: 5 tentativas por minuto
+    - Headers de resposta incluem informações de limite:
+        - `X-RateLimit-Limit`: Limite total de requisições
+        - `X-RateLimit-Remaining`: Requisições restantes
+        - `X-RateLimit-Reset`: Timestamp quando o limite é resetado
+    - Retorna HTTP 429 (Too Many Requests) quando o limite é excedido.
 
 #### **5. Framework**
 - **Spring Boot**:
@@ -250,6 +261,13 @@ await axios.post('/api/auth/logout', {}, { withCredentials: true });
     - Detalhes do banco de dados PostgreSQL.
     - Chave secreta para JWT.
     - Configuração do Kafka e Redis.
+    - Configuração de rate limiting (opcional):
+        - `rate-limit.get.requests`: Limite de requisições GET por minuto (padrão: 100)
+        - `rate-limit.get.window-seconds`: Janela de tempo para GET em segundos (padrão: 60)
+        - `rate-limit.other.requests`: Limite de outras requisições por minuto (padrão: 30)
+        - `rate-limit.other.window-seconds`: Janela de tempo para outras requisições em segundos (padrão: 60)
+        - `rate-limit.login.requests`: Limite de tentativas de login por minuto (padrão: 5)
+        - `rate-limit.login.window-seconds`: Janela de tempo para login em segundos (padrão: 60)
 
 3. Suba os serviços com Docker Compose:
    ```bash
