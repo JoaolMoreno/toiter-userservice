@@ -2,6 +2,7 @@ package com.toiter.userservice.config;
 
 import com.toiter.userservice.service.JwtService;
 import com.toiter.userservice.service.RateLimitService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
@@ -9,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -58,7 +60,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             long resetTime = rateLimitService.getResetTime(userId, ipAddress, requestType);
             int limit = rateLimitService.getLimitForType(requestType);
             
-            response.setStatus(429); // Too Many Requests
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setHeader("X-RateLimit-Limit", String.valueOf(limit));
             response.setHeader("X-RateLimit-Remaining", "0");
             response.setHeader("X-RateLimit-Reset", String.valueOf(System.currentTimeMillis() / 1000 + resetTime));
@@ -109,8 +111,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         try {
             return jwtService.extractUserId(jwt);
-        } catch (Exception e) {
-            // If token is invalid, treat as unauthenticated
+        } catch (JwtException e) {
+            // If token is invalid or expired, treat as unauthenticated
             return null;
         }
     }
