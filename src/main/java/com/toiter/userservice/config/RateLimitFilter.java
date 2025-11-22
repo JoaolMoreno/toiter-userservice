@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.io.IOException;
 
@@ -30,15 +31,23 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     private final RateLimitService rateLimitService;
     private final JwtService jwtService;
+    private final boolean enabled;
 
-    public RateLimitFilter(RateLimitService rateLimitService, JwtService jwtService) {
+    public RateLimitFilter(RateLimitService rateLimitService, JwtService jwtService, @Value("${rate-limit.enabled:true}") boolean enabled) {
         this.rateLimitService = rateLimitService;
         this.jwtService = jwtService;
+        this.enabled = enabled;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+
+        // Short-circuit when rate limiting is disabled via feature flag
+        if (!enabled) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String path = request.getRequestURI();
         String method = request.getMethod();

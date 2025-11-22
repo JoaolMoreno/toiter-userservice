@@ -39,8 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         logger.debug(String.format("Path: %s", path));
 
-        // Ignorar validação para rotas públicas específicas
-        if (path.startsWith("/auth/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.startsWith("/images")) {
+        if (path.startsWith("/auth/") || path.startsWith("/api/auth/") || path.startsWith("/v3/api-docs") || path.startsWith("/swagger-ui") || path.startsWith("/images")) {
             logger.debug("Ignorando validação JWT para rota pública");
             filterChain.doFilter(request, response);
             return;

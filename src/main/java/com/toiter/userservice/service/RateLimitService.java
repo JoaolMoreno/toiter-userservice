@@ -50,8 +50,10 @@ public class RateLimitService {
         int limit = getLimit(requestType);
         int windowSeconds = getWindowSeconds(requestType);
 
-        Long currentCount = redisTemplateForLong.opsForValue().get(key);
-        
+        // Read raw value from Redis bypassing the generic type to avoid ClassCastException
+        Object rawCount = ((RedisTemplate) redisTemplateForLong).opsForValue().get(key);
+        Long currentCount = convertToLong(rawCount);
+
         if (currentCount == null) {
             // First request in the window
             redisTemplateForLong.opsForValue().set(key, 1L, Duration.ofSeconds(windowSeconds));
@@ -80,7 +82,9 @@ public class RateLimitService {
         String key = buildRateLimitKey(userId, ipAddress, requestType);
         int limit = getLimit(requestType);
 
-        Long currentCount = redisTemplateForLong.opsForValue().get(key);
+        // Read raw value from Redis and convert safely
+        Object rawCount = ((RedisTemplate) redisTemplateForLong).opsForValue().get(key);
+        Long currentCount = convertToLong(rawCount);
         if (currentCount == null) {
             return limit;
         }
@@ -138,6 +142,25 @@ public class RateLimitService {
 
     public int getLimitForType(RequestType requestType) {
         return getLimit(requestType);
+    }
+
+    /**
+     * Convert various raw Redis value types into a Long.
+     * Supports Long, Integer, other Number implementations and String numeric values.
+     * Returns null when the raw value is null or cannot be converted.
+     */
+    private Long convertToLong(Object raw) {
+        if (raw == null) return null;
+        if (raw instanceof Long) return (Long) raw;
+        if (raw instanceof Number) return ((Number) raw).longValue();
+        if (raw instanceof String) {
+            try {
+                return Long.parseLong((String) raw);
+            } catch (NumberFormatException e) {
+                // fall through
+            }
+        }
+        return null;
     }
 
     public enum RequestType {
