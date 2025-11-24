@@ -84,7 +84,7 @@ public class ImageService {
             String url = tryPresign(key, daysToUse);
             logger.info("Presigned URL generated for key {} using {} days", key, daysToUse);
             logger.debug("Presigned URL for key {} (truncated): {}", key, url.length() > 200 ? url.substring(0, 200) + "..." : url);
-            return url;
+            return replaceS3HostWithPublicHost(url);
         } catch (Exception e) {
             logger.error("Presign attempt failed for key {} with {} days", key, daysToUse, e);
             String hostToUse = (publicHost != null && !publicHost.isBlank()) ? publicHost : (s3Host != null && !s3Host.isBlank() ? s3Host : null);
@@ -93,7 +93,7 @@ public class ImageService {
                     : String.format("%s/%s/%s", "https://s3.amazonaws.com", bucketName, URLEncoder.encode(key, StandardCharsets.UTF_8));
             logger.info("Returning fallback URL for key {}", key);
             logger.debug("Fallback URL for key {}: {}", key, fallbackUrl);
-            return fallbackUrl;
+            return replaceS3HostWithPublicHost(fallbackUrl);
         }
     }
 
@@ -110,5 +110,26 @@ public class ImageService {
 
         var presigned = s3Presigner.presignGetObject(presignRequest);
         return presigned.url().toString();
+    }
+
+    private String replaceS3HostWithPublicHost(String url) {
+        if (url == null) return null;
+        if (publicHost == null || publicHost.isBlank()) return url;
+        if (s3Host == null || s3Host.isBlank()) return url;
+
+        String src = s3Host.replaceAll("/+$", "");
+        String dst = publicHost.replaceAll("/+$", "");
+
+        String result = url;
+        if (!dst.startsWith("http://") && !dst.startsWith("https://")) {
+            result = result.replace("https://" + src, "https://" + dst);
+            result = result.replace("http://" + src, "http://" + dst);
+        } else {
+            result = result.replace("https://" + src, dst);
+            result = result.replace("http://" + src, dst);
+        }
+        result = result.replace(src, dst);
+
+        return result;
     }
 }
