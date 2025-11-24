@@ -137,6 +137,8 @@ await axios.post('/api/auth/logout', {}, { withCredentials: true });
 | `GET`    | `/users/username/{username}` | Retorna os dados públicos de um usuário por username.    |
 | `GET`    | `/users/images/{id}`       | Retorna o conteúdo de uma imagem (perfil ou cabeçalho) pelo ID. |
 
+Nota: os endpoints de upload de imagem salvam o arquivo em um bucket S3‑compatible e armazenam apenas a chave (UUID) no banco; as URLs públicas retornadas no payload são geradas dinamicamente a partir dessa key (presigned URLs ou fallback).
+
 #### **3. Relacionamentos**
 | Método   | Endpoint                      | Descrição                                                |
 |----------|-------------------------------|----------------------------------------------------------|
@@ -210,6 +212,26 @@ await axios.post('/api/auth/logout', {}, { withCredentials: true });
     - Dados públicos do usuário (`userId -> UserPublicData`).
     - Contagem de seguidores (`followersCount`) atualizada em tempo real.
 
+#### **Armazenamento de Imagens (S3)**
+- A aplicação armazena imagens de perfil e cabeçalho em um bucket S3‑compatible (ex.: AWS S3, MinIO).
+- Comportamento resumido:
+  - Os uploads geram uma key (UUID) salva no banco de dados; o arquivo é enviado para o bucket configurado.
+  - Ao buscar dados públicos, a key é convertida em uma URL pública usando `S3Presigner` (links presignados). Se a geração do presigned URL falhar, é usado um fallback construído a partir de `s3.public-host` / `s3.host` ou `https://s3.amazonaws.com`.
+  - Ao atualizar uma imagem, o objeto anterior no bucket é removido para evitar acúmulo de arquivos órfãos.
+
+- Principais propriedades (lidas de `application.properties` ou variáveis de ambiente):
+  - `s3.host` (env: `S3_ENDPOINT`) — Endpoint do serviço S3 (ex.: `http://minio:9000`). Opcional.
+  - `s3.public-host` (env: `S3_PUBLIC_ENDPOINT`) — Host público para montar URLs de fallback / presigner. Opcional.
+  - `s3.bucket-name` (env: `S3_BUCKET_NAME`) — Nome do bucket (obrigatório).
+  - `s3.region` (env: `S3_REGION`) — Região do cliente S3 (padrão: `us-east-1`).
+  - `s3.access-key` (env: `S3_ACCESS_KEY`) — Access key.
+  - `s3.secret-key` (env: `S3_SECRET_KEY`) — Secret key.
+  - `s3.presign-duration-days` (env: `S3_PRESIGN_DURATION_DAYS`) — Duração dos presigned URLs (padrão: `7`). Nota: para AWS, a duração é limitada a 7 dias e a aplicação faz clamp automaticamente.
+
+- Onde é usado:
+  - `ImageService` faz upload (`putObject`), exclusão (`deleteObject`) e gera presigned URLs com `S3Presigner`.
+  - `UserService` usa `ImageService` para gravar as keys e expor URLs públicas nos objetos retornados.
+
 #### **4. Segurança**
 - **Spring Security com JWT em HttpOnly Cookies**:
     - Tokens armazenados em cookies HttpOnly e Secure.
@@ -268,6 +290,15 @@ await axios.post('/api/auth/logout', {}, { withCredentials: true });
         - `rate-limit.other.window-seconds`: Janela de tempo para outras requisições em segundos (padrão: 60)
         - `rate-limit.login.requests`: Limite de tentativas de login por minuto (padrão: 5)
         - `rate-limit.login.window-seconds`: Janela de tempo para login em segundos (padrão: 60)
+
+    - Variáveis S3 (se for usar armazenamento S3/MinIO):
+        - `S3_ENDPOINT` -> `s3.host` (ex.: `http://minio:9000`)
+        - `S3_PUBLIC_ENDPOINT` -> `s3.public-host` (opcional)
+        - `S3_BUCKET_NAME` -> `s3.bucket-name` (obrigatório)
+        - `S3_REGION` -> `s3.region` (padrão: `us-east-1`)
+        - `S3_ACCESS_KEY` -> `s3.access-key`
+        - `S3_SECRET_KEY` -> `s3.secret-key`
+        - `S3_PRESIGN_DURATION_DAYS` -> `s3.presign-duration-days` (padrão: `7`)
 
 3. Suba os serviços com Docker Compose:
    ```bash
