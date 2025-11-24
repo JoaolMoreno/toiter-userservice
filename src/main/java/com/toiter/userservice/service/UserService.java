@@ -261,7 +261,8 @@ public class UserService {
         if (password.length() > 100) {
             throw new IllegalArgumentException("A senha deve ter no máximo 100 caracteres");
         }
-        if (!password.matches(".*[!@#$%^&*(),.?\":{}|<>].*")) {
+        String specialChars = ".*[!@#$%^&*(),.?\":{}|<>\\[\\]\\\\/`~_\\-=+';].*";
+        if (!password.matches(specialChars)) {
             throw new IllegalArgumentException("A senha deve conter pelo menos um caractere especial");
         }
 
