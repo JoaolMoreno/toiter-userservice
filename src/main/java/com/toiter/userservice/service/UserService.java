@@ -1,6 +1,5 @@
 package com.toiter.userservice.service;
 
-import com.toiter.userservice.entity.Image;
 import com.toiter.userservice.entity.User;
 import com.toiter.userservice.model.*;
 import com.toiter.userservice.producer.KafkaProducer;
@@ -12,7 +11,6 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -28,8 +26,6 @@ import java.util.Optional;
 
 @Service
 public class UserService {
-    @Value("${SERVER_URL}")
-    private String serverUrl;
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -38,6 +34,7 @@ public class UserService {
     private final ImageService imageService;
     private final CacheService cacheService;
     private final KafkaProducer kafkaProducer;
+
     private static final Logger logger = LoggerFactory.getLogger(UserService.class);
 
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, FollowRepository followRepository, PostClientService postClientService, ImageService imageService, CacheService cacheService, KafkaProducer kafkaProducer) {
@@ -130,16 +127,17 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Long existingImageId = user.getProfileImageId();
+        String existingKey = user.getProfileImageUrl();
         List<String> changedFields = new ArrayList<>();
-        Image image = imageService.updateOrCreateImage(existingImageId, imageFile);
-        if(existingImageId == null) {
-            changedFields.add("profileImageId");
+
+        String newKey = imageService.uploadImage(existingKey, imageFile);
+        if (existingKey == null) {
+            changedFields.add("profileImageUrl");
         }
-        user.setProfileImageId(image.getId());
+        user.setProfileImageUrl(newKey);
         userRepository.save(user);
 
-        if(!changedFields.isEmpty()) {
+        if (!changedFields.isEmpty()) {
             UserUpdatedEvent event = new UserUpdatedEvent(user, changedFields);
             kafkaProducer.sendUserUpdatedEvent(event);
         }
@@ -150,12 +148,12 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Long existingImageId = user.getHeaderImageId();
-        Image image = imageService.updateOrCreateImage(existingImageId, imageFile);
-        user.setHeaderImageId(image.getId());
+        String existingKey = user.getHeaderImageUrl();
+        String newKey = imageService.uploadImage(existingKey, imageFile);
+        user.setHeaderImageUrl(newKey);
         userRepository.save(user);
 
-        UserUpdatedEvent event = new UserUpdatedEvent(user, List.of("headerImageId"));
+        UserUpdatedEvent event = new UserUpdatedEvent(user, List.of("headerImageUrl"));
         kafkaProducer.sendUserUpdatedEvent(event);
     }
 
@@ -178,13 +176,18 @@ public class UserService {
             int followingCount = followRepository.countByFollowerId(userId);
             Integer postsCount = postClientService.getPostsCount(userId);
 
+            String profileKey = userProjection.getProfileImageUrl();
+            String headerKey = userProjection.getHeaderImageUrl();
+            String profilePublic = imageService.getPublicUrl(profileKey);
+            String headerPublic = imageService.getPublicUrl(headerKey);
+
             publicData = new UserPublicData(
                     userId,
                     userProjection.getUsername(),
                     userProjection.getDisplayName(),
                     userProjection.getBio(),
-                    userProjection.getProfileImageId(),
-                    userProjection.getHeaderImageId(),
+                    profilePublic,
+                    headerPublic,
                     followersCount,
                     followingCount,
                     null,
@@ -207,8 +210,8 @@ public class UserService {
                     publicData.getUsername(),
                     publicData.getDisplayName(),
                     publicData.getBio(),
-                    publicData.getProfileImageId(),
-                    publicData.getHeaderImageId(),
+                    publicData.getProfileImageUrl(),
+                    publicData.getHeaderImageUrl(),
                     publicData.getFollowersCount(),
                     publicData.getFollowingCount(),
                     isFollowing,
@@ -308,6 +311,25 @@ public class UserService {
             }
             user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+            try {
+                if (user.getProfileImageUrl() != null && !user.getProfileImageUrl().isBlank() && !user.getProfileImageUrl().startsWith("http")) {
+                    String profilePublic = imageService.getPublicUrl(user.getProfileImageUrl());
+                    user.setProfileImageUrl(profilePublic);
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to hydrate profile image for user {}: {}", userId, e.toString());
+            }
+
+            try {
+                if (user.getHeaderImageUrl() != null && !user.getHeaderImageUrl().isBlank() && !user.getHeaderImageUrl().startsWith("http")) {
+                    String headerPublic = imageService.getPublicUrl(user.getHeaderImageUrl());
+                    user.setHeaderImageUrl(headerPublic);
+                }
+            } catch (Exception e) {
+                logger.debug("Failed to hydrate header image for user {}: {}", userId, e.toString());
+            }
+
             cacheService.setUserById(userId, user);
             cacheService.deleteLock(lockKey);
             return user;
@@ -366,7 +388,7 @@ public class UserService {
         Pageable pageable = PageRequest.of(page, size);
         Page<FollowData> followingPage = userRepository.findFollowingDataByQuery(userId, usernameQuery, pageable);
         return followingPage.map(fd -> {
-            String imageUrl = getProfilePictureUrl(fd.getProfileImageId());
+            String imageUrl = imageService.getPublicUrl(fd.getProfileImageUrl());
             fd.setProfileImageUrl(imageUrl);
             return fd;
         });
@@ -379,12 +401,13 @@ public class UserService {
 
     public String getProfilePictureByUsername(String username) {
         UserPublicData publicData = getPublicUserDataByUsername(username, null);
-        Long profileImageId = publicData.getProfileImageId();
-        return getProfilePictureUrl(profileImageId);
+        return publicData.getProfileImageUrl();
     }
 
-    public String getProfilePictureUrl(Long profileImageId) {
-        return profileImageId != null ? serverUrl + "/images/" + profileImageId : null;
+    public String getProfilePictureUrl(String keyOrUrl) {
+        if (keyOrUrl == null) return null;
+        if (keyOrUrl.startsWith("http://") || keyOrUrl.startsWith("https://")) return keyOrUrl;
+        return imageService.getPublicUrl(keyOrUrl);
     }
 
     public UserPublicData createUserPublicData(User user) {
@@ -397,8 +420,8 @@ public class UserService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getBio(),
-                user.getProfileImageId(),
-                user.getHeaderImageId(),
+                user.getProfileImageUrl(),
+                user.getHeaderImageUrl(),
                 followersCount,
                 followingCount,
                 null,

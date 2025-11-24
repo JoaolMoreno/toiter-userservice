@@ -10,8 +10,8 @@ public class UserResponse {
     private String displayName;
     private String email;
     private String bio;
-    private Long profileImageId;
-    private Long headerImageId;
+    private String profileImageUrl;
+    private String headerImageUrl;
     private LocalDateTime creationDate;
 
     public UserResponse() {
@@ -23,8 +23,8 @@ public class UserResponse {
         this.displayName = user.getDisplayName();
         this.email = user.getEmail();
         this.bio = user.getBio();
-        this.profileImageId = user.getProfileImageId();
-        this.headerImageId = user.getHeaderImageId();
+        this.profileImageUrl = user.getProfileImageUrl();
+        this.headerImageUrl = user.getHeaderImageUrl();
         this.creationDate = user.getCreationDate();
     }
 
@@ -68,20 +68,20 @@ public class UserResponse {
         this.bio = bio;
     }
 
-    public Long getProfileImageId() {
-        return profileImageId;
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 
-    public void setProfileImageId(Long profileImageId) {
-        this.profileImageId = profileImageId;
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 
-    public Long getHeaderImageId() {
-        return headerImageId;
+    public String getHeaderImageUrl() {
+        return headerImageUrl;
     }
 
-    public void setHeaderImageId(Long headerImageId) {
-        this.headerImageId = headerImageId;
+    public void setHeaderImageUrl(String headerImageUrl) {
+        this.headerImageUrl = headerImageUrl;
     }
 
     public LocalDateTime getCreationDate() {
@@ -92,4 +92,3 @@ public class UserResponse {
         this.creationDate = creationDate;
     }
 }
-

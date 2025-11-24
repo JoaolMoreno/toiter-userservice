@@ -22,7 +22,7 @@ public interface ChatRepository extends JpaRepository<Chat, Long> {
             "(CASE WHEN m.senderId = u1.id then u1.username else u2.username END ), " +
             "m.content, " +
             "m.sentDate, " +
-            "(CASE WHEN c.userId1 = :userId THEN u2.profileImageId ELSE u1.profileImageId END)) " +
+            "(CASE WHEN c.userId1 = :userId THEN u2.id ELSE u1.id END)) " +
             "FROM Chat c " +
             "JOIN User u1 ON c.userId1 = u1.id " +
             "JOIN User u2 ON c.userId2 = u2.id " +

@@ -7,38 +7,37 @@ public class FollowData {
     private String displayName;
     private String profileImageUrl;
     private LocalDateTime followDate;
-    private Long profileImageId;
 
     public FollowData() {
     }
 
-    public FollowData(String username, String displayName, LocalDateTime followDate, Long profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, String profileImageUrl) {
         this.username = username;
         this.displayName = displayName;
         this.followDate = followDate;
-        this.profileImageId = profileImageId;
+        this.profileImageUrl = profileImageUrl;
     }
 
     // Overloads to match potential primitive/wrapper int cases from JPQL CASE
-    public FollowData(String username, String displayName, LocalDateTime followDate, Number profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, Number profileImageUrl) {
         this.username = username;
         this.displayName = displayName;
         this.followDate = followDate;
-        this.profileImageId = profileImageId != null ? profileImageId.longValue() : null;
+        this.profileImageUrl = profileImageUrl != null ? profileImageUrl.toString() : null;
     }
 
-    public FollowData(String username, String displayName, LocalDateTime followDate, Integer profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, Integer profileImageUrl) {
         this.username = username;
         this.displayName = displayName;
         this.followDate = followDate;
-        this.profileImageId = profileImageId != null ? profileImageId.longValue() : null;
+        this.profileImageUrl = profileImageUrl != null ? profileImageUrl.toString() : null;
     }
 
-    public FollowData(String username, String displayName, LocalDateTime followDate, int profileImageId) {
+    public FollowData(String username, String displayName, LocalDateTime followDate, int profileImageUrl) {
         this.username = username;
         this.displayName = displayName;
         this.followDate = followDate;
-        this.profileImageId = Long.valueOf(profileImageId);
+        this.profileImageUrl = String.valueOf(profileImageUrl);
     }
 
     public String getUsername() {
@@ -72,13 +71,4 @@ public class FollowData {
     public void setFollowDate(LocalDateTime followDate) {
         this.followDate = followDate;
     }
-
-    public Long getProfileImageId() {
-        return profileImageId;
-    }
-
-    public void setProfileImageId(Long profileImageId) {
-        this.profileImageId = profileImageId;
-    }
 }
-

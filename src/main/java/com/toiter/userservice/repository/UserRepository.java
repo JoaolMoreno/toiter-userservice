@@ -32,7 +32,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "u.username, " +
             "u.displayName, " +
             "f.followDate, " +
-            "u.profileImageId) " +
+            "u.profileImageUrl) " +
             "FROM User u " +
             "JOIN Follow f ON u.id = f.userId " +
             "WHERE f.followerId = :userId AND (lower(u.username) like %:username% OR lower(u.displayName) like %:username%)")

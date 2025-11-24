@@ -23,7 +23,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
             "u.username, " +
             "u.displayName, " +
             "f.followDate, " +
-            "u.profileImageId) " +
+            "u.profileImageUrl) " +
             "FROM Follow f " +
             "JOIN User u ON f.followerId = u.id " +
             "WHERE f.userId = :userId")
@@ -33,7 +33,7 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
             "u.username, " +
             "u.displayName, " +
             "f.followDate, " +
-            "u.profileImageId) " +
+            "u.profileImageUrl) " +
             "FROM Follow f " +
             "JOIN User u ON f.userId = u.id " +
             "WHERE f.followerId = :followerId")

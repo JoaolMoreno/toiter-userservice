@@ -10,6 +10,7 @@ import com.toiter.userservice.producer.KafkaProducer;
 import com.toiter.userservice.repository.ChatRepository;
 import com.toiter.userservice.repository.MessageRepository;
 import com.toiter.userservice.repository.UserRepository;
+import com.toiter.userservice.entity.User;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 
@@ -92,8 +93,15 @@ public class ChatService {
         Pageable pageable = PageRequest.of(page, size);
         Page<ChatData> basePage = chatRepository.findChatDataByUserId(userId, pageable);
         return basePage.map(cd -> {
-            String imageUrl = userService.getProfilePictureUrl(cd.getReceiverProfileImageId());
-            cd.setReceiverProfileImageUrl(imageUrl);
+            Long receiverId = cd.getReceiverId();
+            String publicUrl = null;
+            try {
+                User receiver = userService.getUserById(receiverId);
+                publicUrl = receiver.getProfileImageUrl();
+            } catch (Exception e) {
+                // user may not exist or cache miss; leave publicUrl null
+            }
+            cd.setReceiverProfileImageUrl(publicUrl != null ? publicUrl : "");
             return cd;
         });
     }

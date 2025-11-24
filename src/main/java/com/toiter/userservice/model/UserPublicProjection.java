@@ -5,6 +5,6 @@ public interface UserPublicProjection {
     String getUsername();
     String getDisplayName();
     String getBio();
-    Long getProfileImageId();
-    Long getHeaderImageId();
+    String getProfileImageUrl();
+    String getHeaderImageUrl();
 }

@@ -34,11 +34,11 @@ public class User {
 
     private String bio;
 
-    @Column(name = "profile_image_id")
-    private Long profileImageId;
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
 
-    @Column(name = "header_image_id")
-    private Long headerImageId;
+    @Column(name = "header_image_url")
+    private String headerImageUrl;
 
     @Column(name = "creation_date", nullable = false, updatable = false)
     private LocalDateTime creationDate = LocalDateTime.now();
@@ -91,20 +91,20 @@ public class User {
         this.bio = bio;
     }
 
-    public Long getProfileImageId() {
-        return profileImageId;
+    public String getProfileImageUrl() {
+        return profileImageUrl;
     }
 
-    public void setProfileImageId(Long profileImageId) {
-        this.profileImageId = profileImageId;
+    public void setProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
     }
 
-    public Long getHeaderImageId() {
-        return headerImageId;
+    public String getHeaderImageUrl() {
+        return headerImageUrl;
     }
 
-    public void setHeaderImageId(Long headerImageId) {
-        this.headerImageId = headerImageId;
+    public void setHeaderImageUrl(String headerImageUrl) {
+        this.headerImageUrl = headerImageUrl;
     }
 
     public LocalDateTime getCreationDate() {

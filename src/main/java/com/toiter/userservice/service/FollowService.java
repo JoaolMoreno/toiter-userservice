@@ -44,7 +44,7 @@ public class FollowService {
         List<FollowData> followers = followRepository.findFollowerDataByUserId(userId);
         return followers.stream()
                 .peek(fd -> {
-                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageId());
+                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageUrl());
                     fd.setProfileImageUrl(imageUrl);
                 })
                 .toList();
@@ -54,7 +54,7 @@ public class FollowService {
         List<FollowData> followings = followRepository.findFollowingDataByFollowerId(followerId);
         return followings.stream()
                 .peek(fd -> {
-                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageId());
+                    String imageUrl = userService.getProfilePictureUrl(fd.getProfileImageUrl());
                     fd.setProfileImageUrl(imageUrl);
                 })
                 .toList();

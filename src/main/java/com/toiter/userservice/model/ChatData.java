@@ -1,5 +1,7 @@
 package com.toiter.userservice.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import java.time.LocalDateTime;
 
 public class ChatData {
@@ -8,39 +10,32 @@ public class ChatData {
     private String lastMessageSender;
     private String lastMessageContent;
     private LocalDateTime lastMessageSentDate;
+    @JsonIgnore
+    private Long receiverId;
     private String receiverProfileImageUrl;
-    private Long receiverProfileImageId;
 
     public ChatData() {
     }
 
-    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate) {
+    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Long receiverId) {
         this.chatId = chatId;
         this.receiverUsername = receiverUsername;
         this.lastMessageSender = lastMessageSender;
         this.lastMessageContent = lastMessageContent;
         this.lastMessageSentDate = lastMessageSentDate;
+        this.receiverId = receiverId;
     }
 
-    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Long receiverProfileImageId) {
-        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate);
-        this.receiverProfileImageId = receiverProfileImageId;
+    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Number receiverId) {
+        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate, receiverId != null ? receiverId.longValue() : null);
     }
 
-    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Number receiverProfileImageId) {
-        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate);
-        this.receiverProfileImageId = receiverProfileImageId != null ? receiverProfileImageId.longValue() : null;
+    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Integer receiverId) {
+        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate, receiverId != null ? receiverId.longValue() : null);
     }
 
-    // Overloads to match potential primitive/wrapper int cases from JPQL CASE
-    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, Integer receiverProfileImageId) {
-        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate);
-        this.receiverProfileImageId = receiverProfileImageId != null ? receiverProfileImageId.longValue() : null;
-    }
-
-    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, int receiverProfileImageId) {
-        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate);
-        this.receiverProfileImageId = Long.valueOf(receiverProfileImageId);
+    public ChatData(Long chatId, String receiverUsername, String lastMessageSender, String lastMessageContent, LocalDateTime lastMessageSentDate, int receiverId) {
+        this(chatId, receiverUsername, lastMessageSender, lastMessageContent, lastMessageSentDate, Long.valueOf(receiverId));
     }
 
     public LocalDateTime getLastMessageSentDate() {
@@ -83,19 +78,19 @@ public class ChatData {
         this.lastMessageSender = lastMessageSender;
     }
 
+    public Long getReceiverId() {
+        return receiverId;
+    }
+
+    public void setReceiverId(Long receiverId) {
+        this.receiverId = receiverId;
+    }
+
     public String getReceiverProfileImageUrl() {
         return receiverProfileImageUrl;
     }
 
     public void setReceiverProfileImageUrl(String receiverProfileImageUrl) {
         this.receiverProfileImageUrl = receiverProfileImageUrl;
-    }
-
-    public Long getReceiverProfileImageId() {
-        return receiverProfileImageId;
-    }
-
-    public void setReceiverProfileImageId(Long receiverProfileImageId) {
-        this.receiverProfileImageId = receiverProfileImageId;
     }
 }
