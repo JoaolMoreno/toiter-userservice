@@ -24,6 +24,9 @@ public class S3Config {
     @Value("${s3.host:}")
     private String endpoint;
 
+    @Value("${s3.public-host:}")
+    private String publicEndpoint;
+
     @Value("${s3.region:us-east-1}")
     private String region;
 
@@ -61,8 +64,11 @@ public class S3Config {
                 .credentialsProvider(StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey)))
                 .region(Region.of(region));
 
-        if (endpoint != null && !endpoint.isBlank()) {
-            presignerBuilder = presignerBuilder.endpointOverride(URI.create(endpoint));
+        // If a public endpoint is configured, use it for signing presigned URLs so the returned URLs are signed for the public host.
+        String presignEndpointToUse = (publicEndpoint != null && !publicEndpoint.isBlank()) ? publicEndpoint : endpoint;
+
+        if (presignEndpointToUse != null && !presignEndpointToUse.isBlank()) {
+            presignerBuilder = presignerBuilder.endpointOverride(URI.create(presignEndpointToUse));
         }
 
         if (pathStyle) {
@@ -73,7 +79,7 @@ public class S3Config {
         }
 
         S3Presigner presigner = presignerBuilder.build();
-        logger.info("S3 presigner configured: endpoint='{}', pathStyle={}", endpoint, pathStyle);
+        logger.info("S3 presigner configured: endpoint='{}' (publicOverride='{}'), pathStyle={}", presignEndpointToUse, publicEndpoint, pathStyle);
         return presigner;
     }
 
